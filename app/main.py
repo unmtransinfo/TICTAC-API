@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 
-app = FastAPI()
-
+app = FastAPI(
+    title="TICTAC API",
+    description="Initial development version of the TICTAC backend.",
+    version="0.1.0"
+)
 
 @app.get("/")
-async def root():
-    return {"message": "Hello World"}
+def root():
+    return {"message": "TICTAC API - Initial Development Phase"}
