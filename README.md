@@ -18,7 +18,7 @@ Inside the project directory:
 `pip install --upgrade pip`
 `pip install -r requirements.txt`
 
-4. Run the API
+## 4. Run the API
 `uvicorn app.main:app --reload`
 
 API will run at:
