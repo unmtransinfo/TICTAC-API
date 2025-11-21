@@ -1,5 +1,4 @@
-# TICTAC API
-FastAPI backend for the TICTAC analytics platform.  
+# TICTAC API 
 Currently in the initial development phase.
 
 ---
