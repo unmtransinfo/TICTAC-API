@@ -10,8 +10,3 @@ app = FastAPI(
 
 # Include routers
 app.include_router(v1.router)
-
-
-@app.get("/")
-def root():
-    return {"message": "TICTAC API - Initial Development Phase"}
