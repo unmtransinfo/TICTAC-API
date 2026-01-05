@@ -1,6 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
 
@@ -13,36 +14,16 @@ class Publication(BaseModel):
     evidence_type: str | None = None
 
 
+# TODO: add 200 response
 @router.get(
     "/get_provenance",
     response_model=List[Publication],
     summary="Get provenance for gene-disease pair",
     description="Retrieve provenance information (publications) for a specific gene–disease pair, including PMID, title, and evidence type.",
     responses={
-        200: {
-            "description": "List of publications with provenance information",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                            "pmid": "12345678",
-                            "title": "BRCA1 mutations in breast cancer",
-                            "evidence_type": "genetic_association",
-                        },
-                        {
-                            "pmid": "87654321",
-                            "title": "Role of BRCA1 in DNA repair",
-                            "evidence_type": "functional_study",
-                        },
-                    ]
-                }
-            },
-        },
         501: {
             "description": "Endpoint not implemented",
-            "content": {
-                "application/json": {"example": {"detail": "Not implemented"}}
-            },
+            "content": {"application/json": {"example": {"detail": "Not implemented"}}},
         },
     },
 )
@@ -58,4 +39,3 @@ def get_provenance(gene_symbol: str, disease_name: str):
         List of publications with PMID, title, and evidence type.
     """
     raise HTTPException(status_code=501, detail="Not implemented")
-

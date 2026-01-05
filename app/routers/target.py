@@ -1,6 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List
 
 router = APIRouter(prefix="/target", tags=["target"])
 
@@ -13,34 +14,16 @@ class DiseaseEvidence(BaseModel):
     # Add other evidence metrics as needed
 
 
+# TODO: add 200 response
 @router.get(
     "/get_associated_diseases",
     response_model=List[DiseaseEvidence],
     summary="Get diseases associated with a target",
     description="Retrieve all diseases linked to a gene/target, including evidence scores.",
     responses={
-        200: {
-            "description": "List of diseases with evidence scores",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                            "disease_name": "Breast Cancer",
-                            "evidence_score": 0.95,
-                        },
-                        {
-                            "disease_name": "Ovarian Cancer",
-                            "evidence_score": 0.87,
-                        },
-                    ]
-                }
-            },
-        },
         501: {
             "description": "Endpoint not implemented",
-            "content": {
-                "application/json": {"example": {"detail": "Not implemented"}}
-            },
+            "content": {"application/json": {"example": {"detail": "Not implemented"}}},
         },
     },
 )
@@ -55,4 +38,3 @@ def get_associated_diseases(gene_symbol: str):
         List of diseases with evidence scores.
     """
     raise HTTPException(status_code=501, detail="Not implemented")
-
