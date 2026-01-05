@@ -1,3 +1,5 @@
+# TODO: these endpoints can be removed later, just serving as a reference for now
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -5,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db, test_connection
 from app.models.study import Study
 
-router = APIRouter(prefix="/api/v1", tags=["v1"])
+router = APIRouter(prefix="/demo", tags=["demo"])
 
 
 class ConnectionResponse(BaseModel):
