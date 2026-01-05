@@ -1,30 +1,44 @@
-# TICTAC API 
+# TICTAC API
+
 Currently in the initial development phase.
 
 ---
 
-## Initial Setup (Development Environment)
+## Development Setup
 
-### **1. Install Python 3.12**
-Make sure your system has Python 3.12 installed
+### Prerequisites
 
-## 2. Create Virtual Environment
-Inside the project directory:
-`python3.12 -m venv .venv`
-`source .venv/bin/activate`
+- Docker
+- Docker Compose
 
-## 3. Install Dependencies
-`pip install --upgrade pip`
-`pip install -r requirements.txt`
+### Steps
 
-## 4. Run the API
-`uvicorn app.main:app --reload`
+1. **Start the development environment:**
 
-API will run at:
+   ```bash
+   docker compose --env-file .env.dev -f docker compose.dev.yml up --build
+   ```
 
-http://127.0.0.1:8000
+2. **Access the API:**
 
+   - API: http://127.0.0.1:8000
+   - Interactive Docs (Swagger): http://127.0.0.1:8000/docs
 
-Interactive Docs (Swagger):
+3. **Stop the environment:**
 
-http://127.0.0.1:8000/docs
+   ```bash
+   docker compose -f docker compose.dev.yml down
+   ```
+
+4. **(Optional - only if you want a completely clean slate) stop and remove volumes:**
+   ```bash
+   docker compose -f docker compose.dev.yml down -v
+   ```
+
+### Configuration
+
+Environment variables are configured in [.env.dev](.env.dev):
+
+- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_PORT` - Database configuration
+- `POSTGRES_PASSWORD` - PostgreSQL superuser password
+- `APP_PORT` - API port (default: 8000)
