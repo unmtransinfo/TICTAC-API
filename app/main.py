@@ -9,6 +9,9 @@ from app.routers import (
     ontology,
     target,
     trial,
+
+    #New endpoints
+    meta
 )
 
 app = FastAPI(
@@ -18,6 +21,7 @@ app = FastAPI(
 )
 
 # Include routers with /api/v1 prefix
+'''
 app.include_router(demo.router, prefix="/api/v1")
 app.include_router(disease.router, prefix="/api/v1")
 app.include_router(target.router, prefix="/api/v1")
@@ -26,3 +30,5 @@ app.include_router(drug.router, prefix="/api/v1")
 app.include_router(trial.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(ontology.router, prefix="/api/v1")
+'''
+app.include_router(meta.router, prefix="/api/v1")
