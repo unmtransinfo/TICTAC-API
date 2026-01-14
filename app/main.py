@@ -13,7 +13,8 @@ from app.routers import (
     #New endpoints
     meta,
     associations,
-
+    studies,
+    publications
 )
 
 app = FastAPI(
@@ -35,3 +36,5 @@ app.include_router(ontology.router, prefix="/api/v1")
 '''
 app.include_router(meta.router, prefix="/api/v1")
 app.include_router(associations.router, prefix="/api/v1")
+app.include_router(studies.router, prefix="/api/v1")
+app.include_router(publications.router, prefix="/api/v1")
