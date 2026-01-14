@@ -1,15 +1,12 @@
 #app/routers/associations.py
-from typing import List, Optional, Any, Dict
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-
-from fastapi import Depends, Query
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-
 
 router = APIRouter(prefix="/associations", tags=["associations"])
 
@@ -21,7 +18,7 @@ router = APIRouter(prefix="/associations", tags=["associations"])
     "/summary",
     summary="Ranked disease-target summary rows (main discovery surface)",
     description=(
-        "Paginated list of disease-target pairs with metrics."
+        "Paginated list of disease-target pairs with metrics. "
         "Optional filters: doid, gene_symbol, uniprot, idgtdl, min_score, limit, offset."
     ),
 )

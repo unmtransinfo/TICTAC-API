@@ -1,15 +1,12 @@
 #app/routers/associations.py
-from typing import List, Optional, Any, Dict
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-
-from fastapi import Depends, Query
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-
 
 router = APIRouter(prefix="/studies", tags=["studies"])
 
@@ -20,8 +17,8 @@ router = APIRouter(prefix="/studies", tags=["studies"])
 #/studies/{nct_id} endpoint
 @router.get(
     "/{nct_id}",
-    summary="Fetch a single studys metadata + ClinicalTrials.gov link-out",
-    description="Fetch a single studys metadata + ClinicalTrials.gov link-out",
+    summary="Fetch a single study's metadata + ClinicalTrials.gov link-out",
+    description="Fetch a single study's metadata + ClinicalTrials.gov link-out",
 )
 def get_study(nct_id: str, db: Session = Depends(get_db)):
     #e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506

@@ -1,15 +1,12 @@
 #app/routers/meta.py
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-
-from fastapi import Depends
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-
 
 router = APIRouter(prefix="/meta", tags=["meta"])
 
@@ -31,7 +28,7 @@ def health():
 @router.get(
     "/counts",
     summary="High-level dataset counts (sanity + UX)",
-    description="Counts for diseases, targets, drugs, studies, publications, evidence rows, MVs",
+    description="Counts for diseases, targets, drugs, studies, publications, evidence rows, and materialized views",
 )
 def counts(db: Session = Depends(get_db)):
     #counts
