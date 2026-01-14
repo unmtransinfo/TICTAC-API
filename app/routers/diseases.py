@@ -1,16 +1,9 @@
 #app/routers/diseases.py
-from typing import List, Optional, Any, Dict
-
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
-from fastapi import Depends, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-
-
 
 router = APIRouter(prefix="/diseases", tags=["diseases"])
 

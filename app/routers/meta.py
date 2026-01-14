@@ -1,8 +1,5 @@
 #app/routers/meta.py
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
