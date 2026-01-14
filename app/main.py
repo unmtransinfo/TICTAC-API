@@ -11,7 +11,9 @@ from app.routers import (
     trial,
 
     #New endpoints
-    meta
+    meta,
+    associations,
+
 )
 
 app = FastAPI(
@@ -32,3 +34,4 @@ app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(ontology.router, prefix="/api/v1")
 '''
 app.include_router(meta.router, prefix="/api/v1")
+app.include_router(associations.router, prefix="/api/v1")
