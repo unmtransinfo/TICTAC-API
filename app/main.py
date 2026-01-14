@@ -14,7 +14,9 @@ from app.routers import (
     meta,
     associations,
     studies,
-    publications
+    publications,
+    diseases,
+
 )
 
 app = FastAPI(
@@ -38,3 +40,4 @@ app.include_router(meta.router, prefix="/api/v1")
 app.include_router(associations.router, prefix="/api/v1")
 app.include_router(studies.router, prefix="/api/v1")
 app.include_router(publications.router, prefix="/api/v1")
+app.include_router(diseases.router, prefix="/api/v1")
