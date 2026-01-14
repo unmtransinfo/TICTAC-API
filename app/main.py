@@ -1,23 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import (
-    analytics,
-    demo,
-    disease,
-    drug,
-    evidence,
-    ontology,
-    target,
-    trial,
-
-    #New endpoints
-    meta,
-    associations,
-    studies,
-    publications,
-    diseases,
-
-)
+from app.routers import associations, diseases, meta, publications, studies
 
 app = FastAPI(
     title="TICTAC API",
@@ -26,16 +9,6 @@ app = FastAPI(
 )
 
 # Include routers with /api/v1 prefix
-'''
-app.include_router(demo.router, prefix="/api/v1")
-app.include_router(disease.router, prefix="/api/v1")
-app.include_router(target.router, prefix="/api/v1")
-app.include_router(evidence.router, prefix="/api/v1")
-app.include_router(drug.router, prefix="/api/v1")
-app.include_router(trial.router, prefix="/api/v1")
-app.include_router(analytics.router, prefix="/api/v1")
-app.include_router(ontology.router, prefix="/api/v1")
-'''
 app.include_router(meta.router, prefix="/api/v1")
 app.include_router(associations.router, prefix="/api/v1")
 app.include_router(studies.router, prefix="/api/v1")
