@@ -5,8 +5,55 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 
+import re
+from fastapi import HTTPException
+
+from fastapi import Query
+
+
+
 router = APIRouter(prefix="/studies", tags=["studies"])
 
+
+
+
+#/studies/search endpoint
+@router.get(
+    "/search",
+    summary="Typeahead / lookup for studies",
+    description="Typeahead / lookup for studies",
+)
+def search_studies(
+    q: str = Query(..., description="NCT or title substring"),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+
+
+
+    rows = db.execute(
+        text(
+            """
+            SELECT
+
+                nct_id,
+                official_title,
+                overall_status,
+                phase,
+                study_url
+
+            FROM core.study
+            WHERE nct_id ILIKE :q
+               OR official_title ILIKE :q
+            ORDER BY nct_id
+            LIMIT :limit
+            """
+        ),
+        {"q": f"%{q.strip()}%", "limit": limit},
+    ).mappings().all()
+
+
+    return list(rows)
 
 
 
@@ -19,6 +66,12 @@ router = APIRouter(prefix="/studies", tags=["studies"])
 )
 def get_study(nct_id: str, db: Session = Depends(get_db)):
     #e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
+
+    #sanitize. regex with NCT+8digit
+    nct_id = nct_id.strip().upper()
+
+    if not re.match(r"^NCT\d{8}$", nct_id):
+        raise HTTPException(status_code=400, detail="Invalid NCT-ID format.")
 
     
     row = db.execute(
@@ -50,6 +103,8 @@ def get_study(nct_id: str, db: Session = Depends(get_db)):
         {"nct_id": nct_id.strip()},
     ).mappings().first()
 
+    if not row:
+        raise HTTPException(status_code=404, detail="Study not found.")
 
     out = dict(row)
 
@@ -71,6 +126,14 @@ def study_publications(nct_id: str, db: Session = Depends(get_db)):
     core.publication p
     '''
     #e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
+
+
+    #sanitize. regex with NCT+8digit
+    nct_id = nct_id.strip().upper()
+
+    if not re.match(r"^NCT\d{8}$", nct_id):
+        raise HTTPException(status_code=400, detail="Invalid NCT ID format.")
+
 
 
     rows = db.execute(
@@ -95,4 +158,5 @@ def study_publications(nct_id: str, db: Session = Depends(get_db)):
     
 
     return list(rows)
+
 
