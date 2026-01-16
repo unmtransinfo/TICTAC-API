@@ -59,3 +59,52 @@ If one finds they need to update dependencies ([requirements.txt](requirements.t
 5. (Optional) Test the update locally in your environment: `pip-sync`
 
 _Note_: If you need to update the Python version, make sure to adjust the steps above accordingly and to update the Python image in the [Dockerfile](Dockerfile).
+
+#### Code Formatting with Pre-commit Hooks
+
+This project uses [pre-commit](https://pre-commit.com/) hooks to automatically format Python code with [Black](https://black.readthedocs.io/) before each commit. This ensures consistent code style across the project.
+
+**Setup (one-time):**
+
+1. Setup and activate a Python (v3.14) virtual environment if you haven't already:
+
+   ```bash
+   conda create -n tictac-api python=3.14 && conda activate tictac-api
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Install the pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
+
+**Usage:**
+
+Once installed, the hooks will run automatically on `git commit`. If Black reformats any files, the commit will be aborted and you'll need to:
+
+1. Review the changes Black made
+2. Stage the reformatted files: `git add <files>`
+3. Commit again: `git commit`
+
+**Manual formatting:**
+
+You can also run Black manually on all files:
+
+```bash
+black .
+```
+
+Or run all pre-commit hooks manually without committing:
+
+```bash
+pre-commit run --all-files
+```
+
+**Configuration:**
+
+- Pre-commit hooks are configured in [.pre-commit-config.yaml](.pre-commit-config.yaml)
