@@ -1,5 +1,7 @@
-#app/routers/associations.py
-from fastapi import APIRouter, Depends
+# app/routers/associations.py
+import re
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -8,22 +10,65 @@ from app.db.database import get_db
 router = APIRouter(prefix="/studies", tags=["studies"])
 
 
+# /studies/search endpoint
+@router.get(
+    "/search",
+    summary="Typeahead / lookup for studies",
+    description="Typeahead / lookup for studies",
+)
+def search_studies(
+    q: str = Query(..., description="NCT or title substring"),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+
+    rows = (
+        db.execute(
+            text(
+                """
+            SELECT
+
+                nct_id,
+                official_title,
+                overall_status,
+                phase,
+                study_url
+
+            FROM core.study
+            WHERE nct_id ILIKE :q
+               OR official_title ILIKE :q
+            ORDER BY nct_id
+            LIMIT :limit
+            """
+            ),
+            {"q": f"%{q.strip()}%", "limit": limit},
+        )
+        .mappings()
+        .all()
+    )
+
+    return list(rows)
 
 
-
-#/studies/{nct_id} endpoint
+# /studies/{nct_id} endpoint
 @router.get(
     "/{nct_id}",
     summary="Fetch a single study's metadata + ClinicalTrials.gov link-out",
     description="Fetch a single study's metadata + ClinicalTrials.gov link-out",
 )
 def get_study(nct_id: str, db: Session = Depends(get_db)):
-    #e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
+    # e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
 
-    
-    row = db.execute(
-        text(
-            """
+    # sanitize. regex with NCT+8digit
+    nct_id = nct_id.strip().upper()
+
+    if not re.match(r"^NCT\d{8}$", nct_id):
+        raise HTTPException(status_code=400, detail="Invalid NCT-ID format.")
+
+    row = (
+        db.execute(
+            text(
+                """
             SELECT
                 nct_id,
 
@@ -46,36 +91,52 @@ def get_study(nct_id: str, db: Session = Depends(get_db)):
             FROM core.study
             WHERE nct_id = :nct_id
             """
-        ),
-        {"nct_id": nct_id.strip()},
-    ).mappings().first()
+            ),
+            {"nct_id": nct_id.strip()},
+        )
+        .mappings()
+        .first()
+    )
 
+    if not row:
+        raise HTTPException(status_code=404, detail="Study not found.")
 
     out = dict(row)
-
 
     return out
 
 
-
-#/studies/{nct_id}/publications endpoint
+# /studies/{nct_id}/publications endpoint
 @router.get(
     "/{nct_id}/publications",
     summary="Publications supporting a given study (NCT -> PMIDs)",
     description="Publications supporting a given study (NCT -> PMIDs)",
 )
 def study_publications(nct_id: str, db: Session = Depends(get_db)):
-    '''
+    """
     core.study s
     core.study_publication sp
     core.publication p
-    '''
-    #e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
+    """
+    # e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
 
+    # sanitize. regex with NCT+8digit
+    nct_id = nct_id.strip().upper()
 
-    rows = db.execute(
-        text(
-            """
+    if not re.match(r"^NCT\d{8}$", nct_id):
+        raise HTTPException(status_code=400, detail="Invalid NCT ID format.")
+
+    study_exists = db.execute(
+        text("SELECT 1 FROM core.study WHERE nct_id = :nct_id"), {"nct_id": nct_id}
+    ).first()
+
+    if not study_exists:
+        raise HTTPException(status_code=404, detail="Study not found.")
+
+    rows = (
+        db.execute(
+            text(
+                """
             SELECT
             
                 p.pmid,
@@ -88,11 +149,11 @@ def study_publications(nct_id: str, db: Session = Depends(get_db)):
             WHERE s.nct_id = :nct_id
             ORDER BY p.pmid
             """
-        ),
-        {"nct_id": nct_id.strip()},
-    ).mappings().all()
-
-    
+            ),
+            {"nct_id": nct_id.strip()},
+        )
+        .mappings()
+        .all()
+    )
 
     return list(rows)
-

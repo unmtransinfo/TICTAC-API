@@ -1,4 +1,4 @@
-#app/routers/associations.py
+# app/routers/associations.py
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -10,9 +10,7 @@ from app.db.database import get_db
 router = APIRouter(prefix="/associations", tags=["associations"])
 
 
-
-
-#/associations/summary endpoint
+# /associations/summary endpoint
 @router.get(
     "/summary",
     summary="Ranked disease-target summary rows (main discovery surface)",
@@ -22,34 +20,28 @@ router = APIRouter(prefix="/associations", tags=["associations"])
     ),
 )
 def associations_summary(
-
-
-    #important: doid input is following: e.g. DOID:1799
+    # important: doid input is following: e.g. DOID:1799
     doid: Optional[str] = None,
-
     gene_symbol: Optional[str] = None,
     uniprot: Optional[str] = None,
-    #idgtdl
+    # idgtdl
     idgtdl: Optional[str] = Query(default=None, description="Tclin/Tchem/Tbio/Tdark"),
     min_score: Optional[float] = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    '''
+    """
     core.disease_target dt
-    core.disease d 
+    core.disease d
     core.target t
     core.disease_target_metrics m
-    '''
-
-
+    """
 
     where = []
     params: Dict[str, Any] = {"limit": limit, "offset": offset}
 
-
-    #checking if there is any input given and put them in sql query
+    # checking if there is any input given and put them in sql query
     if doid:
         where.append("d.doid = :doid")
         params["doid"] = doid.strip()
@@ -66,16 +58,13 @@ def associations_summary(
         where.append("m.meanrankscore >= :min_score")
         params["min_score"] = float(min_score)
 
- 
-
-    #joining everything
+    # joining everything
     if len(where) > 0:
         where_sql = "WHERE " + " AND ".join(where)
     else:
         where_sql = ""
-   
 
-    #joins the disease, target and metrics tables together and add input where_sql
+    # joins the disease, target and metrics tables together and add input where_sql
     base_from = f"""
         FROM core.disease_target dt
         JOIN core.disease d ON d.disease_id = dt.disease_id
@@ -84,14 +73,14 @@ def associations_summary(
         {where_sql}
     """
 
-    #how many disase-target rows exist after we join(base_from)
+    # how many disase-target rows exist after we join(base_from)
     total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
 
-
-    #get the disease-target rows with their metrics from the joined tables, apply sortin and pagination
-    rows = db.execute(
-        text(
-            f"""
+    # get the disease-target rows with their metrics from the joined tables, apply sortin and pagination
+    rows = (
+        db.execute(
+            text(
+                f"""
             SELECT
                 d.doid,
                 d.preferred_name AS disease_name,
@@ -112,10 +101,12 @@ def associations_summary(
             ORDER BY m.meanrankscore DESC NULLS LAST
             LIMIT :limit OFFSET :offset
             """
-        ),
-        params,
-    ).mappings().all()
-
+            ),
+            params,
+        )
+        .mappings()
+        .all()
+    )
 
     return {
         "limit": limit,
@@ -123,19 +114,16 @@ def associations_summary(
         "total": total,
         "items": list(rows),
     }
-    
 
 
-
-#/associations/evidence endpoint
+# /associations/evidence endpoint
 @router.get(
     "/evidence",
     summary="Evidence-level rows linking disease-target-drug-study (main provenance surface)",
     description="Paginated evidence rows including: DOID/name, UniProt/gene/TDL, drug (molecule_chembl_id, cid, drug_name), study (nct_id, title, phase, status, dates, enrollment, study_url)",
 )
 def associations_evidence(
-
-    #disease_target did as written in the docs as doid_uniprot.
+    # disease_target did as written in the docs as doid_uniprot.
     disease_target: Optional[str] = Query(default=None, description="DOID:..._UNIPROT"),
     disease_name: Optional[str] = Query(default=None, description="ILIKE filter"),
     gene_symbol: Optional[str] = None,
@@ -144,11 +132,11 @@ def associations_evidence(
     phase: Optional[str] = None,
     overall_status: Optional[str] = None,
     exclude_withdrawn: bool = False,
-    limit: int = Query(default=100, ge=1, le=1000), 
-    offset: int = Query(default=0, ge=0), 
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    '''
+    """
     core.disease_target_study_drug e
     core.disease_target dt
     core.disease d
@@ -156,17 +144,13 @@ def associations_evidence(
     core.target t
     core.study s
     core.drug_name dn
-    '''
-
+    """
 
     where = []
     params: Dict[str, Any] = {"limit": limit, "offset": offset}
 
-
-
-
-    #e.g.disease_target="DOID:1799_P41597". 
-    #SELECT d.doid, t.uniprot_id FROM core.disease d JOIN core.disease_target dt ON dt.disease_id = d.disease_id JOIN core.target t ON t.target_id = dt.target_id WHERE d.doid = 'DOID:1799' LIMIT 5;
+    # e.g.disease_target="DOID:1799_P41597".
+    # SELECT d.doid, t.uniprot_id FROM core.disease d JOIN core.disease_target dt ON dt.disease_id = d.disease_id JOIN core.target t ON t.target_id = dt.target_id WHERE d.doid = 'DOID:1799' LIMIT 5;
     if disease_target:
         s = disease_target.strip()
         if "_" in s:
@@ -176,8 +160,7 @@ def associations_evidence(
             params["doid_dt"] = doid_val
             params["uniprot_dt"] = uniprot_val
 
-
-    #checking if there is any input given and put them in sql query
+    # checking if there is any input given and put them in sql query
     if disease_name:
         where.append("d.preferred_name ILIKE :disease_name")
         params["disease_name"] = f"%{disease_name.strip()}%"
@@ -197,17 +180,14 @@ def associations_evidence(
         where.append("s.overall_status ILIKE :overall_status")
         params["overall_status"] = f"%{overall_status.strip()}%"
     if exclude_withdrawn:
-        #excluding. total statuses:  ACTIVE_NOT_RECRUITING,APPROVED_FOR_MARKETING,AVAILABLE, COMPLETED, ENROLLING_BY_INVITATION,NO_LONGER_AVAILABLE,NOT_YET_RECRUITING,RECRUITING,SUSPENDED,TEMPORARILY_NOT_AVAILABLE,TERMINATED,UNKNOWN,WITHDRAWN
+        # excluding. total statuses:  ACTIVE_NOT_RECRUITING,APPROVED_FOR_MARKETING,AVAILABLE, COMPLETED, ENROLLING_BY_INVITATION,NO_LONGER_AVAILABLE,NOT_YET_RECRUITING,RECRUITING,SUSPENDED,TEMPORARILY_NOT_AVAILABLE,TERMINATED,UNKNOWN,WITHDRAWN
         where.append("s.overall_status <> 'WITHDRAWN'")
 
-
-    #joining everything
+    # joining everything
     if len(where) > 0:
         where_sql = "WHERE " + " AND ".join(where)
     else:
         where_sql = ""
-
-
 
     ##join disease, target, drug and study table and select one drug name per drug(DESC makes true come first) and do where_sql
     base_from = f"""
@@ -232,16 +212,13 @@ def associations_evidence(
         {where_sql}
     """
 
-
-    #total
+    # total
     total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
 
-
-
-
-    rows = db.execute(
-        text(
-            f"""
+    rows = (
+        db.execute(
+            text(
+                f"""
             SELECT
                 d.doid,
                 d.preferred_name AS disease_name,
@@ -270,17 +247,11 @@ def associations_evidence(
             ORDER BY d.doid, t.uniprot_id, dr.molecule_chembl_id, s.nct_id
             LIMIT :limit OFFSET :offset
             """
-        ),
-        params,
-    ).mappings().all()
+            ),
+            params,
+        )
+        .mappings()
+        .all()
+    )
 
-
-
-
-    return {
-        "limit": limit, 
-        "offset": offset, 
-        "total": total, 
-        "items": list(rows)
-    }
-
+    return {"limit": limit, "offset": offset, "total": total, "items": list(rows)}
