@@ -1,4 +1,4 @@
-#app/routers/targets.py
+# app/routers/targets.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -6,13 +6,10 @@ from sqlalchemy import text
 from app.db.database import get_db
 
 
-
 router = APIRouter(prefix="/targets", tags=["targets"])
 
 
-
-
-#/targets/search
+# /targets/search
 @router.get(
     "/search",
     summary="Typeahead / lookup for targets",
@@ -23,17 +20,18 @@ def search_targets(
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    '''
+    """
     core.target t
-    '''
+    """
 
-    #q is a substring search used for uniprot_id or gene_symbol mentioned in docs
-    #IMPORTANT: tcrdtargetname(Target Central Resource Database?) is core.target.protein_name in this
+    # q is a substring search used for uniprot_id or gene_symbol mentioned in docs
+    # IMPORTANT: tcrdtargetname(Target Central Resource Database?) is core.target.protein_name in this
 
-    #e.g. of gene_symbol: ZNF560
-    rows = db.execute(
-        text(
-            """
+    # e.g. of gene_symbol: ZNF560
+    rows = (
+        db.execute(
+            text(
+                """
             SELECT
 
                 t.uniprot_id AS uniprot,
@@ -48,11 +46,11 @@ def search_targets(
             ORDER BY t.gene_symbol NULLS LAST
             LIMIT :limit
             """
-        ),
-        {"q": f"%{q.strip()}%", "limit": limit},
-    ).mappings().all()
-
-
+            ),
+            {"q": f"%{q.strip()}%", "limit": limit},
+        )
+        .mappings()
+        .all()
+    )
 
     return list(rows)
-

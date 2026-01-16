@@ -1,4 +1,4 @@
-#app/routers/drugs.py
+# app/routers/drugs.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -6,14 +6,10 @@ from sqlalchemy import text
 from app.db.database import get_db
 
 
-
 router = APIRouter(prefix="/drugs", tags=["drugs"])
 
 
-
-
-
-#drugs/search endpoint
+# drugs/search endpoint
 @router.get(
     "/search",
     summary="Typeahead / lookup for drugs",
@@ -24,16 +20,15 @@ def search_drugs(
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    '''
+    """
     core.drug d
     core.drug_name dn
-    '''
+    """
 
-    
-    
-    rows = db.execute(
-        text(
-            """
+    rows = (
+        db.execute(
+            text(
+                """
             SELECT
                 d.molecule_chembl_id,
                 d.cid,
@@ -45,10 +40,11 @@ def search_drugs(
             ORDER BY dn.drug_name
             LIMIT :limit
             """
-        ),
-        {"q": f"%{q.strip()}%", "limit": limit},
-    ).mappings().all()
-
+            ),
+            {"q": f"%{q.strip()}%", "limit": limit},
+        )
+        .mappings()
+        .all()
+    )
 
     return list(rows)
-
