@@ -16,7 +16,7 @@ Currently in the initial development phase.
 1. **Start the development environment:**
 
    ```bash
-   docker compose --env-file .env.dev -f docker compose.dev.yml up --build
+   docker compose --env-file .env.dev -f docker-compose.dev.yml up --build
    ```
 
 2. **Access the API:**
@@ -27,12 +27,12 @@ Currently in the initial development phase.
 3. **Stop the environment:**
 
    ```bash
-   docker compose -f docker compose.dev.yml down
+   docker compose -f docker-compose.dev.yml down
    ```
 
 4. **(Optional - only if you want a completely clean slate) stop and remove volumes:**
    ```bash
-   docker compose -f docker compose.dev.yml down -v
+   docker compose -f docker-compose.dev.yml down -v
    ```
 
 ### Configuration
