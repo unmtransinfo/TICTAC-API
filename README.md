@@ -58,4 +58,4 @@ If one finds they need to update dependencies ([requirements.txt](requirements.t
 4. Compile new requirements: `pip-compile --upgrade`
 5. (Optional) Test the update locally in your environment: `pip-sync`
 
-_Note_: If you need to update the Python version, make sure to adjust the steps above accordingly and to update the Python image in `Dockerfile`.
+_Note_: If you need to update the Python version, make sure to adjust the steps above accordingly and to update the Python image in the [Dockerfile](Dockerfile).
