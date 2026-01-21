@@ -1,4 +1,3 @@
-# TODO: add resource constraints to the containers
 services:
   db:
     image: unmtransinfo/tictac_db:pg18
