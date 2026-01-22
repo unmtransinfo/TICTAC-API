@@ -33,14 +33,18 @@ Currently in the initial development phase.
 
    ```
    ProxyPreserveHost On
-   ProxyPass /tictac/apidocs http://localhost:<APP_PORT>/ # modify <APP_PORT> to match your .env file
-   ProxyPassReverse /tictac/apidocs http://localhost:<APP_PORT>/
+   ProxyPass /tictac/apidocs http://localhost:<APP_PORT>/docs
+   ProxyPassReverse /tictac/apidocs http://localhost:<APP_PORT>/docs
+   ProxyPass /tictac/ http://localhost:<APP_PORT>/
+   ProxyPassReverse /tictac/ http://localhost:<APP_PORT>/
    ```
 
-   Then restart apache:
+   Then reload apache:
 
-   ```
-   sudo systemctl restart apache2
+   ```bash
+   sudo apache2ctl configtest # make sure syntax ok
+   sudo systemctl reload apache2
+   curl -I https://habanero.health.unm.edu/tictac/apidocs # should give HTTP/1.1 200
    ```
 
 The API docs should now be accessible at:
