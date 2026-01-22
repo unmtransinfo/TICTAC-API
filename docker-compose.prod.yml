@@ -36,6 +36,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_HOST: db
       DB_PORT: 5432
+      BEHIND_PROXY: "true"
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     depends_on:
