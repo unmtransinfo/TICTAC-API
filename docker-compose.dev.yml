@@ -1,6 +1,6 @@
 services:
   db:
-    image: unmtransinfo/tictac_db:pg18
+    image: unmtransinfo/tictac_db:latest
     container_name: tictac-db
     environment:
       DB_USER: ${DB_USER}
