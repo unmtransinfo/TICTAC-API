@@ -1,19 +1,25 @@
+import os
+
 from fastapi import FastAPI
+
+# Check if we're running behind a reverse proxy
+root_path = "/tictac" if os.getenv("BEHIND_PROXY") == "true" else ""
 
 from app.routers import (
     associations,
     diseases,
+    drugs,
     meta,
     publications,
     studies,
     targets,
-    drugs,
 )
 
 app = FastAPI(
     title="TICTAC API",
     description="Initial development version of the TICTAC backend.",
     version="0.1.0",
+    root_path=root_path,
 )
 
 # Include routers with /api/v1 prefix
