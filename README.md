@@ -15,18 +15,26 @@ Currently in the initial development phase.
    docker compose -f docker-compose.prod.yml down
    ```
 
-3. **Run docker compose up:**
+3. **Pull latest images and run:**
 
    ```bash
-   docker compose -f docker-compose.prod.yml up --build
+   docker compose -f docker-compose.prod.yml pull
+   docker compose -f docker-compose.prod.yml up -d --remove-orphans
    ```
 
-4. **(One-time setup) If not done so already, modify `/etc/apache2/sites-available/000-default-le-ssl.conf` to include the following lines:**
+4. **Verify deployment:**
+
+   ```bash
+   docker compose -f docker-compose.prod.yml ps
+   docker compose -f docker-compose.prod.yml logs api
+   ```
+
+5. **(One-time setup) If not done so already, modify `/etc/apache2/sites-available/000-default-le-ssl.conf` to include the following lines:**
 
    ```
    ProxyPreserveHost On
-   ProxyPass /tictac-api/ http://localhost:<APP_PORT>/ # modify <APP_PORT> to match your .env file
-   ProxyPassReverse /tictac-api/ http://localhost:<APP_PORT>/
+   ProxyPass /tictac/apidocs http://localhost:<APP_PORT>/ # modify <APP_PORT> to match your .env file
+   ProxyPassReverse /tictac/apidocs http://localhost:<APP_PORT>/
    ```
 
    Then restart apache:
@@ -34,6 +42,10 @@ Currently in the initial development phase.
    ```
    sudo systemctl restart apache2
    ```
+
+The API docs should now be accessible at:
+
+https://habanero.health.unm.edu/tictac/apidocs
 
 ### Pushing API to dockerhub
 
