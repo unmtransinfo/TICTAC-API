@@ -4,6 +4,63 @@ Currently in the initial development phase.
 
 ---
 
+## Production Setup (on habanero)
+
+### Launching API
+
+1. **(Recommended) Modify [.env](.env)**
+2. **(If services previously up):**
+
+   ```bash
+   docker compose -f docker-compose.prod.yml down
+   ```
+
+3. **Run docker compose up:**
+
+   ```bash
+   docker compose -f docker-compose.prod.yml up --build
+   ```
+
+4. **(One-time setup) If not done so already, modify `/etc/apache2/sites-available/000-default-le-ssl.conf` to include the following lines:**
+
+   ```
+   ProxyPreserveHost On
+   ProxyPass /tictac-api/ http://localhost:<APP_PORT>/ # modify <APP_PORT> to match your .env file
+   ProxyPassReverse /tictac-api/ http://localhost:<APP_PORT>/
+   ```
+
+   Then restart apache:
+
+   ```
+   sudo systemctl restart apache2
+   ```
+
+### Pushing API to dockerhub
+
+1. **Build image:**
+
+   ```
+   docker build -t unmtransinfo/tictac_api:latest .
+   ```
+
+2. **Add tags to image:**
+
+   ```
+   docker tag unmtransinfo/tictac_api:latest unmtransinfo/tictac_api:v1 # modify v1 to whatever version you want to use
+   ```
+
+3. **Login**:
+
+   ```
+   docker login
+   ```
+
+4. **Push**:
+
+   ```
+   docker push unmtransinfo/tictac_api:latest && docker push unmtransinfo/tictac_api:v1
+   ```
+
 ## Development Setup
 
 ### Prerequisites
@@ -16,11 +73,10 @@ Currently in the initial development phase.
 1. **Start the development environment:**
 
    ```bash
-   docker compose --env-file .env.dev -f docker-compose.dev.yml up --build
+   docker compose -f docker-compose.dev.yml up --build
    ```
 
 2. **Access the API:**
-
    - API: http://127.0.0.1:8000
    - Interactive Docs (Swagger): http://127.0.0.1:8000/docs
 
