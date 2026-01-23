@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 router = APIRouter(prefix="/publications", tags=["publications"])
@@ -19,27 +20,32 @@ def get_publication(pmid: str, db: Session = Depends(get_db)):
 
     # e.g.1000144, 1000466, 1000470, 100122
 
-    row = (
-        db.execute(
-            text(
+    try:
+        row = (
+            db.execute(
+                text(
+                    """
+                SELECT
+
+                    pmid,
+                    citation,
+                    pubmed_url
+
+                FROM core.publication
+                WHERE pmid = :pmid
                 """
-            SELECT
-
-                pmid,
-                citation,
-                pubmed_url
-
-            FROM core.publication
-            WHERE pmid = :pmid
-            """
-            ),
-            {"pmid": pmid.strip()},
+                ),
+                {"pmid": pmid.strip()},
+            )
+            .mappings()
+            .first()
         )
-        .mappings()
-        .first()
-    )
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Publication not found.")
+        if not row:
+            raise HTTPException(status_code=404, detail="Publication not found.")
 
-    return dict(row)
+        return dict(row)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise handle_database_error(e, "get_publication")
