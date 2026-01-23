@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 router = APIRouter(prefix="/associations", tags=["associations"])
@@ -67,47 +68,50 @@ def associations_summary(
         {where_sql}
     """
 
-    # how many disase-target rows
-    total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
+    try:
+        # how many disase-target rows
+        total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
 
-    # get the disease-target rows with their metrics
-    rows = (
-        db.execute(
-            text(
-                f"""
-            SELECT
-                doid,
-                disease_name,
-                gene_symbol,
-                uniprot,
-                idgtdl,
-
-
-                n_drugs,
-                n_studies,
-                n_publications,
+        # get the disease-target rows with their metrics
+        rows = (
+            db.execute(
+                text(
+                    f"""
+                SELECT
+                    doid,
+                    disease_name,
+                    gene_symbol,
+                    uniprot,
+                    idgtdl,
 
 
-                meanrankscore,
-                meanrank,
-                percentile_meanrank
-            {base_from}
-            ORDER BY meanrankscore DESC NULLS LAST
-            LIMIT :limit OFFSET :offset
-            """
-            ),
-            params,
+                    n_drugs,
+                    n_studies,
+                    n_publications,
+
+
+                    meanrankscore,
+                    meanrank,
+                    percentile_meanrank
+                {base_from}
+                ORDER BY meanrankscore DESC NULLS LAST
+                LIMIT :limit OFFSET :offset
+                """
+                ),
+                params,
+            )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
-    )
 
-    return {
-        "limit": limit,
-        "offset": offset,
-        "total": total,
-        "items": list(rows),
-    }
+        return {
+            "limit": limit,
+            "offset": offset,
+            "total": total,
+            "items": list(rows),
+        }
+    except Exception as e:
+        raise handle_database_error(e, "associations_summary")
 
 
 # /associations/evidence endpoint
@@ -183,42 +187,45 @@ def associations_evidence(
         {where_sql}
     """
 
-    # total
-    total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
+    try:
+        # total
+        total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
 
-    rows = (
-        db.execute(
-            text(
-                f"""
-            SELECT
-                doid,
-                disease_name,
-                uniprot,
-                gene_symbol,
-                tcrdtargetname,
-                idgtdl,
-                nct_id,
-                official_title,
-                study_type,
-                phase,
-                overall_status,
-                start_date,
-                completion_date,
-                enrollment,
-                study_url,
-                cid,
-                molecule_chembl_id,
-                drug_name,
-                disease_target
-            {base_from}
-            ORDER BY doid, uniprot, molecule_chembl_id, nct_id
-            LIMIT :limit OFFSET :offset
-            """
-            ),
-            params,
+        rows = (
+            db.execute(
+                text(
+                    f"""
+                SELECT
+                    doid,
+                    disease_name,
+                    uniprot,
+                    gene_symbol,
+                    tcrdtargetname,
+                    idgtdl,
+                    nct_id,
+                    official_title,
+                    study_type,
+                    phase,
+                    overall_status,
+                    start_date,
+                    completion_date,
+                    enrollment,
+                    study_url,
+                    cid,
+                    molecule_chembl_id,
+                    drug_name,
+                    disease_target
+                {base_from}
+                ORDER BY doid, uniprot, molecule_chembl_id, nct_id
+                LIMIT :limit OFFSET :offset
+                """
+                ),
+                params,
+            )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
-    )
 
-    return {"limit": limit, "offset": offset, "total": total, "items": list(rows)}
+        return {"limit": limit, "offset": offset, "total": total, "items": list(rows)}
+    except Exception as e:
+        raise handle_database_error(e, "associations_evidence")

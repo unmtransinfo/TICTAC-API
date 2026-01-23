@@ -1,10 +1,11 @@
-# app/routers/associations.py
+# app/routers/studies.py
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 router = APIRouter(prefix="/studies", tags=["studies"])
@@ -21,33 +22,35 @@ def search_studies(
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
+    try:
+        rows = (
+            db.execute(
+                text(
+                    """
+                SELECT
 
-    rows = (
-        db.execute(
-            text(
+                    nct_id,
+                    official_title,
+                    overall_status,
+                    phase,
+                    study_url
+
+                FROM core.study
+                WHERE nct_id ILIKE :q
+                   OR official_title ILIKE :q
+                ORDER BY nct_id
+                LIMIT :limit
                 """
-            SELECT
-
-                nct_id,
-                official_title,
-                overall_status,
-                phase,
-                study_url
-
-            FROM core.study
-            WHERE nct_id ILIKE :q
-               OR official_title ILIKE :q
-            ORDER BY nct_id
-            LIMIT :limit
-            """
-            ),
-            {"q": f"%{q.strip()}%", "limit": limit},
+                ),
+                {"q": f"%{q.strip()}%", "limit": limit},
+            )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
-    )
 
-    return list(rows)
+        return list(rows)
+    except Exception as e:
+        raise handle_database_error(e, "search_studies")
 
 
 # /studies/{nct_id} endpoint
@@ -65,45 +68,50 @@ def get_study(nct_id: str, db: Session = Depends(get_db)):
     if not re.match(r"^NCT\d{8}$", nct_id):
         raise HTTPException(status_code=400, detail="Invalid NCT-ID format.")
 
-    row = (
-        db.execute(
-            text(
+    try:
+        row = (
+            db.execute(
+                text(
+                    """
+                SELECT
+                    nct_id,
+
+                    study_title AS title,
+                    official_title,
+                    phase,
+                    overall_status AS status,
+
+                    start_date,
+                    completion_date,
+                    start_year,
+
+                    enrollment,
+                    clinicaltrials_url,
+                    study_url,
+
+                    study_type,
+                    source
+
+                FROM core.study
+                WHERE nct_id = :nct_id
                 """
-            SELECT
-                nct_id,
-
-                study_title AS title,
-                official_title,
-                phase,
-                overall_status AS status,
-
-                start_date,
-                completion_date,
-                start_year,
-
-                enrollment,
-                clinicaltrials_url,
-                study_url,
-
-                study_type,
-                source
-
-            FROM core.study
-            WHERE nct_id = :nct_id
-            """
-            ),
-            {"nct_id": nct_id.strip()},
+                ),
+                {"nct_id": nct_id.strip()},
+            )
+            .mappings()
+            .first()
         )
-        .mappings()
-        .first()
-    )
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Study not found.")
+        if not row:
+            raise HTTPException(status_code=404, detail="Study not found.")
 
-    out = dict(row)
+        out = dict(row)
 
-    return out
+        return out
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise handle_database_error(e, "get_study")
 
 
 # /studies/{nct_id}/publications endpoint
@@ -126,34 +134,39 @@ def study_publications(nct_id: str, db: Session = Depends(get_db)):
     if not re.match(r"^NCT\d{8}$", nct_id):
         raise HTTPException(status_code=400, detail="Invalid NCT ID format.")
 
-    study_exists = db.execute(
-        text("SELECT 1 FROM core.study WHERE nct_id = :nct_id"), {"nct_id": nct_id}
-    ).first()
+    try:
+        study_exists = db.execute(
+            text("SELECT 1 FROM core.study WHERE nct_id = :nct_id"), {"nct_id": nct_id}
+        ).first()
 
-    if not study_exists:
-        raise HTTPException(status_code=404, detail="Study not found.")
+        if not study_exists:
+            raise HTTPException(status_code=404, detail="Study not found.")
 
-    rows = (
-        db.execute(
-            text(
+        rows = (
+            db.execute(
+                text(
+                    """
+                SELECT
+                
+                    p.pmid,
+                    p.citation,
+                    p.pubmed_url
+
+                FROM core.study s
+                JOIN core.study_publication sp ON sp.study_id = s.study_id
+                JOIN core.publication p ON p.publication_id = sp.publication_id
+                WHERE s.nct_id = :nct_id
+                ORDER BY p.pmid
                 """
-            SELECT
-            
-                p.pmid,
-                p.citation,
-                p.pubmed_url
-
-            FROM core.study s
-            JOIN core.study_publication sp ON sp.study_id = s.study_id
-            JOIN core.publication p ON p.publication_id = sp.publication_id
-            WHERE s.nct_id = :nct_id
-            ORDER BY p.pmid
-            """
-            ),
-            {"nct_id": nct_id.strip()},
+                ),
+                {"nct_id": nct_id.strip()},
+            )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
-    )
 
-    return list(rows)
+        return list(rows)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise handle_database_error(e, "study_publications")

@@ -1,9 +1,6 @@
 from sqlalchemy import BigInteger, Column, Text
 
-from app.db.database import Base
-
-
-class Study(Base):
+class Study():
     """Model for core.study table."""
 
     __tablename__ = "study"

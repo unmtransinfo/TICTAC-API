@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 
@@ -28,29 +29,32 @@ def search_targets(
     # IMPORTANT: tcrdtargetname(Target Central Resource Database?) is core.target.protein_name in this
 
     # e.g. of gene_symbol: ZNF560
-    rows = (
-        db.execute(
-            text(
+    try:
+        rows = (
+            db.execute(
+                text(
+                    """
+                SELECT
+
+                    t.uniprot_id AS uniprot,
+                    t.gene_symbol,
+                    t.idg_tdl AS idgtdl,
+
+                    t.protein_name AS tcrdtargetname
+
+                FROM core.target t
+                WHERE t.uniprot_id ILIKE :q
+                   OR t.gene_symbol ILIKE :q
+                ORDER BY t.gene_symbol NULLS LAST
+                LIMIT :limit
                 """
-            SELECT
-
-                t.uniprot_id AS uniprot,
-                t.gene_symbol,
-                t.idg_tdl AS idgtdl,
-
-                t.protein_name AS tcrdtargetname
-
-            FROM core.target t
-            WHERE t.uniprot_id ILIKE :q
-               OR t.gene_symbol ILIKE :q
-            ORDER BY t.gene_symbol NULLS LAST
-            LIMIT :limit
-            """
-            ),
-            {"q": f"%{q.strip()}%", "limit": limit},
+                ),
+                {"q": f"%{q.strip()}%", "limit": limit},
+            )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
-    )
 
-    return list(rows)
+        return list(rows)
+    except Exception as e:
+        raise handle_database_error(e, "search_targets")
