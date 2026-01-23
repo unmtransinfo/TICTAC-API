@@ -32,10 +32,7 @@ def associations_summary(
     db: Session = Depends(get_db),
 ):
     """
-    core.disease_target dt
-    core.disease d
-    core.target t
-    core.disease_target_metrics m
+    core.mv_disease_target_summary_plus
     """
 
     where = []
@@ -43,19 +40,19 @@ def associations_summary(
 
     # checking if there is any input given and put them in sql query
     if doid:
-        where.append("d.doid = :doid")
+        where.append("doid = :doid")
         params["doid"] = doid.strip()
     if gene_symbol:
-        where.append("t.gene_symbol ILIKE :gene_symbol")
-        params["gene_symbol"] = gene_symbol.strip()
+        where.append("gene_symbol ILIKE :gene_symbol")
+        params["gene_symbol"] = f"%{gene_symbol.strip()}%"
     if uniprot:
-        where.append("t.uniprot_id = :uniprot")
+        where.append("uniprot = :uniprot")
         params["uniprot"] = uniprot.strip()
     if idgtdl:
-        where.append("t.idg_tdl = :idgtdl")
+        where.append("idgtdl = :idgtdl")
         params["idgtdl"] = idgtdl.strip()
     if min_score is not None:
-        where.append("m.meanrankscore >= :min_score")
+        where.append("meanrankscore >= :min_score")
         params["min_score"] = float(min_score)
 
     # joining everything
@@ -64,41 +61,38 @@ def associations_summary(
     else:
         where_sql = ""
 
-    # joins the disease, target and metrics tables together and add input where_sql
+    # base_from
     base_from = f"""
-        FROM core.disease_target dt
-        JOIN core.disease d ON d.disease_id = dt.disease_id
-        JOIN core.target t ON t.target_id = dt.target_id
-        LEFT JOIN core.disease_target_metrics m ON m.disease_target_id = dt.disease_target_id
+        FROM core.mv_disease_target_summary_plus
         {where_sql}
     """
 
-    # how many disase-target rows exist after we join(base_from)
+    # how many disase-target rows
     total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
 
-    # get the disease-target rows with their metrics from the joined tables, apply sortin and pagination
+    # get the disease-target rows with their metrics
     rows = (
         db.execute(
             text(
                 f"""
             SELECT
-                d.doid,
-                d.preferred_name AS disease_name,
-                t.gene_symbol,
-                t.uniprot_id AS uniprot,
-                t.idg_tdl AS idgtdl,
+                doid,
+                disease_name,
+                gene_symbol,
+                uniprot,
+                idgtdl,
 
 
-                m.ndrug AS n_drugs,
-                m.nstud AS n_studies,
-                m.npub  AS n_publications,
+                n_drugs,
+                n_studies,
+                n_publications,
 
 
-                m.meanrankscore,
-                m.meanrank,
-                m.percentile_meanrank
+                meanrankscore,
+                meanrank,
+                percentile_meanrank
             {base_from}
-            ORDER BY m.meanrankscore DESC NULLS LAST
+            ORDER BY meanrankscore DESC NULLS LAST
             LIMIT :limit OFFSET :offset
             """
             ),
