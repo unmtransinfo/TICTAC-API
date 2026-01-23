@@ -1,4 +1,4 @@
-# app/routers/associations.py
+# app/routers/studies.py
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query
