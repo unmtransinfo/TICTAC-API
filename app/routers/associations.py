@@ -131,13 +131,7 @@ def associations_evidence(
     db: Session = Depends(get_db),
 ):
     """
-    core.disease_target_study_drug e
-    core.disease_target dt
-    core.disease d
-    core.drug dr
-    core.target t
-    core.study s
-    core.drug_name dn
+    core.mv_tictac_associations
     """
 
     where = []
@@ -149,33 +143,33 @@ def associations_evidence(
         s = disease_target.strip()
         if "_" in s:
             doid_val, uniprot_val = s.split("_", 1)
-            where.append("d.doid = :doid_dt")
-            where.append("t.uniprot_id = :uniprot_dt")
+            where.append("doid = :doid_dt")
+            where.append("uniprot = :uniprot_dt")
             params["doid_dt"] = doid_val
             params["uniprot_dt"] = uniprot_val
 
     # checking if there is any input given and put them in sql query
     if disease_name:
-        where.append("d.preferred_name ILIKE :disease_name")
+        where.append("disease_name ILIKE :disease_name")
         params["disease_name"] = f"%{disease_name.strip()}%"
     if gene_symbol:
-        where.append("t.gene_symbol ILIKE :gene_symbol")
+        where.append("gene_symbol ILIKE :gene_symbol")
         params["gene_symbol"] = f"%{gene_symbol.strip()}%"
     if molecule_chembl_id:
-        where.append("dr.molecule_chembl_id = :chembl")
+        where.append("molecule_chembl_id = :chembl")
         params["chembl"] = molecule_chembl_id.strip()
     if nct_id:
-        where.append("s.nct_id = :nct_id")
+        where.append("nct_id = :nct_id")
         params["nct_id"] = nct_id.strip()
     if phase:
-        where.append("s.phase ILIKE :phase")
+        where.append("phase ILIKE :phase")
         params["phase"] = f"%{phase.strip()}%"
     if overall_status:
-        where.append("s.overall_status ILIKE :overall_status")
-        params["overall_status"] = f"%{overall_status.strip()}%"
+        where.append("UPPER(overall_status) = :overall_status")
+        params["overall_status"] = overall_status.strip().upper()
     if exclude_withdrawn:
         # excluding. total statuses:  ACTIVE_NOT_RECRUITING,APPROVED_FOR_MARKETING,AVAILABLE, COMPLETED, ENROLLING_BY_INVITATION,NO_LONGER_AVAILABLE,NOT_YET_RECRUITING,RECRUITING,SUSPENDED,TEMPORARILY_NOT_AVAILABLE,TERMINATED,UNKNOWN,WITHDRAWN
-        where.append("s.overall_status <> 'WITHDRAWN'")
+        where.append("overall_status <> 'WITHDRAWN'")
 
     # joining everything
     if len(where) > 0:
@@ -183,26 +177,9 @@ def associations_evidence(
     else:
         where_sql = ""
 
-    ##join disease, target, drug and study table and select one drug name per drug(DESC makes true come first) and do where_sql
+    # base from
     base_from = f"""
-        FROM core.disease_target_study_drug e
-        JOIN core.disease_target dt ON dt.disease_target_id = e.disease_target_id
-        JOIN core.disease d ON d.disease_id = dt.disease_id
-        JOIN core.target t ON t.target_id = dt.target_id
-        JOIN core.drug dr ON dr.drug_id = e.drug_id
-        JOIN core.study s ON s.study_id = e.study_id
-
-
-        LEFT JOIN LATERAL (
-            SELECT dn.drug_name
-            FROM core.drug_name dn
-            WHERE dn.drug_id = dr.drug_id
-            ORDER BY dn.is_preferred DESC, dn.drug_name ASC
-            LIMIT 1
-        ) dn ON TRUE
-
-
-
+        FROM core.mv_tictac_associations
         {where_sql}
     """
 
@@ -214,31 +191,27 @@ def associations_evidence(
             text(
                 f"""
             SELECT
-                d.doid,
-                d.preferred_name AS disease_name,
-
-                t.uniprot_id,
-                t.gene_symbol,
-                t.idg_tdl,
-
-
-                dr.molecule_chembl_id,
-                dr.cid,
-                dn.drug_name,
-
-
-                s.nct_id,
-                s.study_title AS title,
-                s.phase,
-                s.overall_status AS status,
-                s.start_date,
-                s.completion_date,
-                s.enrollment,
-                COALESCE(s.study_url, s.clinicaltrials_url) AS study_url,
-
-                e.source
+                doid,
+                disease_name,
+                uniprot,
+                gene_symbol,
+                tcrdtargetname,
+                idgtdl,
+                nct_id,
+                official_title,
+                study_type,
+                phase,
+                overall_status,
+                start_date,
+                completion_date,
+                enrollment,
+                study_url,
+                cid,
+                molecule_chembl_id,
+                drug_name,
+                disease_target
             {base_from}
-            ORDER BY d.doid, t.uniprot_id, dr.molecule_chembl_id, s.nct_id
+            ORDER BY doid, uniprot, molecule_chembl_id, nct_id
             LIMIT :limit OFFSET :offset
             """
             ),
