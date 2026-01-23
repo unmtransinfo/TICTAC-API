@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 
@@ -25,26 +26,29 @@ def search_drugs(
     core.drug_name dn
     """
 
-    rows = (
-        db.execute(
-            text(
+    try:
+        rows = (
+            db.execute(
+                text(
+                    """
+                SELECT
+                    d.molecule_chembl_id,
+                    d.cid,
+                    dn.drug_name
+                FROM core.drug d
+                JOIN core.drug_name dn ON dn.drug_id = d.drug_id
+                WHERE dn.is_preferred = true
+                  AND dn.drug_name ILIKE :q
+                ORDER BY dn.drug_name
+                LIMIT :limit
                 """
-            SELECT
-                d.molecule_chembl_id,
-                d.cid,
-                dn.drug_name
-            FROM core.drug d
-            JOIN core.drug_name dn ON dn.drug_id = d.drug_id
-            WHERE dn.is_preferred = true
-              AND dn.drug_name ILIKE :q
-            ORDER BY dn.drug_name
-            LIMIT :limit
-            """
-            ),
-            {"q": f"%{q.strip()}%", "limit": limit},
+                ),
+                {"q": f"%{q.strip()}%", "limit": limit},
+            )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
-    )
 
-    return list(rows)
+        return list(rows)
+    except Exception as e:
+        raise handle_database_error(e, "search_drugs")
