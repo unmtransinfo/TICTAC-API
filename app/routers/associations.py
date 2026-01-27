@@ -229,3 +229,100 @@ def associations_evidence(
         return {"limit": limit, "offset": offset, "total": total, "items": list(rows)}
     except Exception as e:
         raise handle_database_error(e, "associations_evidence")
+
+
+# /associations/provenance_summary endpoint
+@router.get(
+    "/provenance_summary",
+    summary="Disease-target pairs with trial evidence",
+    description="Endpoint which shows disease-target pairs that have linked clinical trials (provenance)",
+)
+def provenance_summary(
+    doid: str | None = None,
+    gene_symbol: str | None = None,
+    uniprot: str | None = None,
+    idgtdl: str | None = None,
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """
+    core.mv_tictac_associations a
+    """
+
+    # threshold for provenance making it as disease-target that has at least 1 nct_id
+    # using mv
+    where = []
+    params = {
+        "doid": doid.strip() if doid else None,
+        "gene_symbol": f"%{gene_symbol.strip()}%" if gene_symbol else None,
+        "uniprot": uniprot.strip() if uniprot else None,
+        "idgtdl": idgtdl.strip() if idgtdl else None,
+        "limit": limit,
+        "offset": offset,
+    }
+
+    where_sql = """
+    WHERE (:doid IS NULL OR a.doid = :doid)
+    AND (:gene_symbol IS NULL OR a.gene_symbol ILIKE :gene_symbol)
+    AND (:uniprot IS NULL OR a.uniprot = :uniprot)
+    AND (:idgtdl IS NULL OR a.idgtdl = :idgtdl)
+    """
+
+    try:
+        # count how many unique disease target pairs exist
+        total = db.execute(
+            text(
+                f"""
+                SELECT COUNT(*) FROM (
+                    SELECT a.doid, a.uniprot, a.gene_symbol, a.idgtdl
+                    FROM core.mv_tictac_associations a
+
+                    {where_sql}
+
+                    GROUP BY a.doid, a.uniprot, a.gene_symbol, a.idgtdl
+                ) x
+            """
+            ),
+            params,
+        ).scalar_one()
+
+        # provenance
+        rows = (
+            db.execute(
+                text(
+                    f"""
+                SELECT
+                    a.doid,
+                    a.disease_name,
+                    a.uniprot,
+                    a.gene_symbol,
+                    a.idgtdl,
+
+                    COUNT(DISTINCT a.nct_id) AS n_trials,
+                    (COUNT(DISTINCT a.nct_id) > 0) AS has_provenance
+
+                FROM core.mv_tictac_associations a
+
+                {where_sql}
+
+                GROUP BY a.doid, a.disease_name, a.uniprot, a.gene_symbol, a.idgtdl
+                ORDER BY n_trials DESC
+                LIMIT :limit OFFSET :offset
+            """
+                ),
+                params,
+            )
+            .mappings()
+            .all()
+        )
+
+        return {
+            "limit": limit,
+            "offset": offset,
+            "total": total,
+            "items": list(rows),
+        }
+
+    except Exception as e:
+        raise handle_database_error(e, "provenance_summary")
