@@ -121,8 +121,9 @@ def associations_summary(
     description="Paginated evidence rows including: DOID/name, UniProt/gene/TDL, drug (molecule_chembl_id, cid, drug_name), study (nct_id, title, phase, status, dates, enrollment, study_url)",
 )
 def associations_evidence(
-    # disease_target did as written in the docs as doid_uniprot.
-    disease_target: Optional[str] = Query(default=None, description="DOID:..._UNIPROT"),
+    # Disease target in the docs but using doid and uniprot
+    doid: str | None = None,
+    uniprot: str | None = None,
     disease_name: Optional[str] = Query(default=None, description="ILIKE filter"),
     gene_symbol: Optional[str] = None,
     molecule_chembl_id: Optional[str] = None,
@@ -143,14 +144,15 @@ def associations_evidence(
 
     # e.g.disease_target="DOID:1799_P41597".
     # SELECT d.doid, t.uniprot_id FROM core.disease d JOIN core.disease_target dt ON dt.disease_id = d.disease_id JOIN core.target t ON t.target_id = dt.target_id WHERE d.doid = 'DOID:1799' LIMIT 5;
-    if disease_target:
-        s = disease_target.strip()
-        if "_" in s:
-            doid_val, uniprot_val = s.split("_", 1)
-            where.append("doid = :doid_dt")
-            where.append("uniprot = :uniprot_dt")
-            params["doid_dt"] = doid_val
-            params["uniprot_dt"] = uniprot_val
+
+    # disease target split into doid and uniprot
+    if doid:
+        where.append("doid = :doid")
+        params["doid"] = doid.strip()
+
+    if uniprot:
+        where.append("uniprot = :uniprot")
+        params["uniprot"] = uniprot.strip()
 
     # checking if there is any input given and put them in sql query
     if disease_name:
