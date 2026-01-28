@@ -121,8 +121,9 @@ def associations_summary(
     description="Paginated evidence rows including: DOID/name, UniProt/gene/TDL, drug (molecule_chembl_id, cid, drug_name), study (nct_id, title, phase, status, dates, enrollment, study_url)",
 )
 def associations_evidence(
-    # disease_target did as written in the docs as doid_uniprot.
-    disease_target: Optional[str] = Query(default=None, description="DOID:..._UNIPROT"),
+    # Disease target in the docs but using doid and uniprot
+    doid: str | None = None,
+    uniprot: str | None = None,
     disease_name: Optional[str] = Query(default=None, description="ILIKE filter"),
     gene_symbol: Optional[str] = None,
     molecule_chembl_id: Optional[str] = None,
@@ -143,14 +144,15 @@ def associations_evidence(
 
     # e.g.disease_target="DOID:1799_P41597".
     # SELECT d.doid, t.uniprot_id FROM core.disease d JOIN core.disease_target dt ON dt.disease_id = d.disease_id JOIN core.target t ON t.target_id = dt.target_id WHERE d.doid = 'DOID:1799' LIMIT 5;
-    if disease_target:
-        s = disease_target.strip()
-        if "_" in s:
-            doid_val, uniprot_val = s.split("_", 1)
-            where.append("doid = :doid_dt")
-            where.append("uniprot = :uniprot_dt")
-            params["doid_dt"] = doid_val
-            params["uniprot_dt"] = uniprot_val
+
+    # disease target split into doid and uniprot
+    if doid:
+        where.append("doid = :doid")
+        params["doid"] = doid.strip()
+
+    if uniprot:
+        where.append("uniprot = :uniprot")
+        params["uniprot"] = uniprot.strip()
 
     # checking if there is any input given and put them in sql query
     if disease_name:
@@ -229,3 +231,100 @@ def associations_evidence(
         return {"limit": limit, "offset": offset, "total": total, "items": list(rows)}
     except Exception as e:
         raise handle_database_error(e, "associations_evidence")
+
+
+# /associations/provenance_summary endpoint
+@router.get(
+    "/provenance_summary",
+    summary="Disease-target pairs with trial evidence and publication",
+    description="Endpoint which shows disease-target pairs that have linked clinical trials and publication (provenance)",
+)
+def provenance_summary(
+    doid: str | None = None,
+    gene_symbol: str | None = None,
+    uniprot: str | None = None,
+    nct_id: str | None = None,
+    pmid: str | None = None,
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """
+    core.mv_tictac_associations_summary s
+    """
+
+    # will match exact disease_target pair if both doid and uniprot given
+    # otherwise will try to match on the prefix (if doid given), suffix (if uniprot given), or nothing (if neither given)
+    disease_target_exact = None
+    disease_target_prefix = None
+    disease_target_suffix = None
+
+    if doid and uniprot:
+        disease_target_exact = f"{doid.strip()}_{uniprot.strip()}"
+    elif doid:
+        disease_target_prefix = f"{doid.strip()}_%"
+    elif uniprot:
+        disease_target_suffix = f"%_{uniprot.strip()}"
+
+    params: Dict[str, Any] = {
+        "disease_target_exact": disease_target_exact,
+        "disease_target_prefix": disease_target_prefix,
+        "disease_target_suffix": disease_target_suffix,
+        "gene_symbol": f"%{gene_symbol.strip()}%" if gene_symbol else None,
+        "nct_id": nct_id.strip() if nct_id else None,
+        "pmid": pmid.strip() if pmid else None,
+        "limit": limit,
+        "offset": offset,
+    }
+
+    where_sql = """
+    WHERE (:disease_target_exact IS NULL OR s.disease_target = :disease_target_exact)
+      AND (:disease_target_prefix IS NULL OR s.disease_target LIKE :disease_target_prefix)
+      AND (:disease_target_suffix IS NULL OR s.disease_target LIKE :disease_target_suffix)
+      AND (:gene_symbol   IS NULL OR s.gene_symbol ILIKE :gene_symbol)
+      AND (:nct_id        IS NULL OR s.nct_id = :nct_id)
+      AND (:pmid          IS NULL OR s.pmid = :pmid)
+    """
+
+    try:
+        # count how many unique disease target pairs exist
+        total = db.execute(
+            text(
+                f"SELECT COUNT(*) FROM core.mv_tictac_associations_summary s {where_sql}"
+            ),
+            params,
+        ).scalar_one()
+
+        # provenance
+        rows = (
+            db.execute(
+                text(
+                    f"""
+                SELECT
+                    s.disease_target,
+                    s.gene_symbol,
+                    s.nct_id,
+                    s.pmid,
+                    s.citation,
+                    s.pubmed_url
+                FROM core.mv_tictac_associations_summary s
+                {where_sql}
+                ORDER BY s.disease_target, s.gene_symbol, s.nct_id, s.pmid NULLS LAST
+                LIMIT :limit OFFSET :offset
+                """
+                ),
+                params,
+            )
+            .mappings()
+            .all()
+        )
+
+        return {
+            "limit": limit,
+            "offset": offset,
+            "total": total,
+            "items": list(rows),
+        }
+
+    except Exception as e:
+        raise handle_database_error(e, "provenance_summary")
