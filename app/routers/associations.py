@@ -253,10 +253,23 @@ def provenance_summary(
     core.mv_tictac_associations_summary s
     """
 
-    disease_target = f"{doid.strip()}_{uniprot.strip()}" if doid and uniprot else None
+    # will match exact disease_target pair if both doid and uniprot given
+    # otherwise will try to match on the prefix (if doid given), suffix (if uniprot given), or nothing (if neither given)
+    disease_target_exact = None
+    disease_target_prefix = None
+    disease_target_suffix = None
+
+    if doid and uniprot:
+        disease_target_exact = f"{doid.strip()}_{uniprot.strip()}"
+    elif doid:
+        disease_target_prefix = f"{doid.strip()}_%"
+    elif uniprot:
+        disease_target_suffix = f"%_{uniprot.strip()}"
 
     params: Dict[str, Any] = {
-        "disease_target": disease_target,
+        "disease_target_exact": disease_target_exact,
+        "disease_target_prefix": disease_target_prefix,
+        "disease_target_suffix": disease_target_suffix,
         "gene_symbol": f"%{gene_symbol.strip()}%" if gene_symbol else None,
         "nct_id": nct_id.strip() if nct_id else None,
         "pmid": pmid.strip() if pmid else None,
@@ -265,7 +278,9 @@ def provenance_summary(
     }
 
     where_sql = """
-    WHERE (:disease_target IS NULL OR s.disease_target = :disease_target)
+    WHERE (:disease_target_exact IS NULL OR s.disease_target = :disease_target_exact)
+      AND (:disease_target_prefix IS NULL OR s.disease_target LIKE :disease_target_prefix)
+      AND (:disease_target_suffix IS NULL OR s.disease_target LIKE :disease_target_suffix)
       AND (:gene_symbol   IS NULL OR s.gene_symbol ILIKE :gene_symbol)
       AND (:nct_id        IS NULL OR s.nct_id = :nct_id)
       AND (:pmid          IS NULL OR s.pmid = :pmid)
