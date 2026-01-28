@@ -234,55 +234,46 @@ def associations_evidence(
 # /associations/provenance_summary endpoint
 @router.get(
     "/provenance_summary",
-    summary="Disease-target pairs with trial evidence",
-    description="Endpoint which shows disease-target pairs that have linked clinical trials (provenance)",
+    summary="Disease-target pairs with trial evidence and publication",
+    description="Endpoint which shows disease-target pairs that have linked clinical trials and publication (provenance)",
 )
 def provenance_summary(
     doid: str | None = None,
     gene_symbol: str | None = None,
     uniprot: str | None = None,
-    idgtdl: str | None = None,
+    nct_id: str | None = None,
+    pmid: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
     """
-    core.mv_tictac_associations a
+    core.mv_tictac_associations_summary s
     """
 
-    # threshold for provenance making it as disease-target that has at least 1 nct_id
-    # using mv
-    where = []
-    params = {
-        "doid": doid.strip() if doid else None,
+    disease_target = f"{doid.strip()}_{uniprot.strip()}" if doid and uniprot else None
+
+    params: Dict[str, Any] = {
+        "disease_target": disease_target,
         "gene_symbol": f"%{gene_symbol.strip()}%" if gene_symbol else None,
-        "uniprot": uniprot.strip() if uniprot else None,
-        "idgtdl": idgtdl.strip() if idgtdl else None,
+        "nct_id": nct_id.strip() if nct_id else None,
+        "pmid": pmid.strip() if pmid else None,
         "limit": limit,
         "offset": offset,
     }
 
     where_sql = """
-    WHERE (:doid IS NULL OR a.doid = :doid)
-    AND (:gene_symbol IS NULL OR a.gene_symbol ILIKE :gene_symbol)
-    AND (:uniprot IS NULL OR a.uniprot = :uniprot)
-    AND (:idgtdl IS NULL OR a.idgtdl = :idgtdl)
+    WHERE (:disease_target IS NULL OR s.disease_target = :disease_target)
+      AND (:gene_symbol   IS NULL OR s.gene_symbol ILIKE :gene_symbol)
+      AND (:nct_id        IS NULL OR s.nct_id = :nct_id)
+      AND (:pmid          IS NULL OR s.pmid = :pmid)
     """
 
     try:
         # count how many unique disease target pairs exist
         total = db.execute(
             text(
-                f"""
-                SELECT COUNT(*) FROM (
-                    SELECT a.doid, a.uniprot, a.gene_symbol, a.idgtdl
-                    FROM core.mv_tictac_associations a
-
-                    {where_sql}
-
-                    GROUP BY a.doid, a.uniprot, a.gene_symbol, a.idgtdl
-                ) x
-            """
+                f"SELECT COUNT(*) FROM core.mv_tictac_associations_summary s {where_sql}"
             ),
             params,
         ).scalar_one()
@@ -293,23 +284,17 @@ def provenance_summary(
                 text(
                     f"""
                 SELECT
-                    a.doid,
-                    a.disease_name,
-                    a.uniprot,
-                    a.gene_symbol,
-                    a.idgtdl,
-
-                    COUNT(DISTINCT a.nct_id) AS n_trials,
-                    (COUNT(DISTINCT a.nct_id) > 0) AS has_provenance
-
-                FROM core.mv_tictac_associations a
-
+                    s.disease_target,
+                    s.gene_symbol,
+                    s.nct_id,
+                    s.pmid,
+                    s.citation,
+                    s.pubmed_url
+                FROM core.mv_tictac_associations_summary s
                 {where_sql}
-
-                GROUP BY a.doid, a.disease_name, a.uniprot, a.gene_symbol, a.idgtdl
-                ORDER BY n_trials DESC
+                ORDER BY s.disease_target, s.gene_symbol, s.nct_id, s.pmid NULLS LAST
                 LIMIT :limit OFFSET :offset
-            """
+                """
                 ),
                 params,
             )
