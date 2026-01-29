@@ -6,6 +6,8 @@ from sqlalchemy import text
 from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
+from app.utils.validate_query import validate_query_params
+
 
 router = APIRouter(prefix="/drugs", tags=["drugs"])
 
@@ -15,6 +17,16 @@ router = APIRouter(prefix="/drugs", tags=["drugs"])
     "/search",
     summary="Typeahead / lookup for drugs",
     description="Typeahead / lookup for drugs",
+    dependencies=[
+        Depends(
+            validate_query_params(
+                {
+                    "q",
+                    "limit",
+                }
+            )
+        )
+    ],
 )
 def search_drugs(
     q: str = Query(..., description="Drug name substring"),

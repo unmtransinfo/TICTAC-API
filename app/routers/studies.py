@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
+from app.utils.validate_query import validate_query_params
+
+
 router = APIRouter(prefix="/studies", tags=["studies"])
 
 
@@ -16,6 +19,7 @@ router = APIRouter(prefix="/studies", tags=["studies"])
     "/search",
     summary="Typeahead / lookup for studies",
     description="Typeahead / lookup for studies",
+    dependencies=[Depends(validate_query_params({"q", "limit"}))],
 )
 def search_studies(
     q: str = Query(..., description="NCT or title substring"),
@@ -58,6 +62,7 @@ def search_studies(
     "/{nct_id}",
     summary="Fetch a single study's metadata + ClinicalTrials.gov link-out",
     description="Fetch a single study's metadata + ClinicalTrials.gov link-out",
+    dependencies=[Depends(validate_query_params(set()))],
 )
 def get_study(nct_id: str, db: Session = Depends(get_db)):
     # e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
@@ -119,6 +124,7 @@ def get_study(nct_id: str, db: Session = Depends(get_db)):
     "/{nct_id}/publications",
     summary="Publications supporting a given study (NCT -> PMIDs)",
     description="Publications supporting a given study (NCT -> PMIDs)",
+    dependencies=[Depends(validate_query_params(set()))],
 )
 def study_publications(nct_id: str, db: Session = Depends(get_db)):
     """
