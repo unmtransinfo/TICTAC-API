@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
+from app.utils.validate_query import validate_query_params
+
+
 router = APIRouter(prefix="/publications", tags=["publications"])
 
 
@@ -14,6 +17,7 @@ router = APIRouter(prefix="/publications", tags=["publications"])
     "/{pmid}",
     summary="Publication details + PubMed link-out",
     description="Publication details + PubMed link-out",
+    dependencies=[Depends(validate_query_params(set()))],
 )
 def get_publication(pmid: str, db: Session = Depends(get_db)):
     """ """

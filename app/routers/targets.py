@@ -6,6 +6,8 @@ from sqlalchemy import text
 from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
+from app.utils.validate_query import validate_query_params
+
 
 router = APIRouter(prefix="/targets", tags=["targets"])
 
@@ -15,6 +17,7 @@ router = APIRouter(prefix="/targets", tags=["targets"])
     "/search",
     summary="Typeahead / lookup for targets",
     description="Typeahead / lookup for targets",
+    dependencies=[Depends(validate_query_params({"q", "limit"}))],
 )
 def search_targets(
     q: str = Query(..., description="Gene symbol or UniProt substring"),

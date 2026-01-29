@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
+from app.utils.validate_query import validate_query_params
+
 router = APIRouter(prefix="/associations", tags=["associations"])
 
 
@@ -19,6 +21,21 @@ router = APIRouter(prefix="/associations", tags=["associations"])
         "Paginated list of disease-target pairs with metrics. "
         "Optional filters: doid, gene_symbol, uniprot, idgtdl, min_score, limit, offset."
     ),
+    dependencies=[
+        Depends(
+            validate_query_params(
+                {
+                    "doid",
+                    "gene_symbol",
+                    "uniprot",
+                    "idgtdl",
+                    "min_score",
+                    "limit",
+                    "offset",
+                }
+            )
+        )
+    ],
 )
 def associations_summary(
     # important: doid input is following: e.g. DOID:1799
@@ -119,6 +136,25 @@ def associations_summary(
     "/evidence",
     summary="Evidence-level rows linking disease-target-drug-study (main provenance surface)",
     description="Paginated evidence rows including: DOID/name, UniProt/gene/TDL, drug (molecule_chembl_id, cid, drug_name), study (nct_id, title, phase, status, dates, enrollment, study_url)",
+    dependencies=[
+        Depends(
+            validate_query_params(
+                {
+                    "doid",
+                    "uniprot",
+                    "disease_name",
+                    "gene_symbol",
+                    "molecule_chembl_id",
+                    "nct_id",
+                    "phase",
+                    "overall_status",
+                    "exclude_withdrawn",
+                    "limit",
+                    "offset",
+                }
+            )
+        )
+    ],
 )
 def associations_evidence(
     # Disease target in the docs but using doid and uniprot
@@ -238,6 +274,21 @@ def associations_evidence(
     "/provenance_summary",
     summary="Disease-target pairs with trial evidence and publication",
     description="Endpoint which shows disease-target pairs that have linked clinical trials and publication (provenance)",
+    dependencies=[
+        Depends(
+            validate_query_params(
+                {
+                    "doid",
+                    "gene_symbol",
+                    "uniprot",
+                    "nct_id",
+                    "pmid",
+                    "limit",
+                    "offset",
+                }
+            )
+        )
+    ],
 )
 def provenance_summary(
     doid: str | None = None,

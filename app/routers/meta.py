@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
+
 router = APIRouter(prefix="/meta", tags=["meta"])
 
 
@@ -28,7 +29,9 @@ def health():
 def counts(db: Session = Depends(get_db)):
     try:
         # counts
-        disease_count = db.execute(text("SELECT COUNT(*) FROM core.disease")).scalar_one()
+        disease_count = db.execute(
+            text("SELECT COUNT(*) FROM core.disease")
+        ).scalar_one()
         target_count = db.execute(text("SELECT COUNT(*) FROM core.target")).scalar_one()
         drug_count = db.execute(text("SELECT COUNT(*) FROM core.drug")).scalar_one()
         study_count = db.execute(text("SELECT COUNT(*) FROM core.study")).scalar_one()
