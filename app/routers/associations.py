@@ -86,9 +86,6 @@ def associations_summary(
     """
 
     try:
-        # how many disase-target rows
-        total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
-
         # get the disease-target rows with their metrics
         rows = (
             db.execute(
@@ -124,7 +121,6 @@ def associations_summary(
         return {
             "limit": limit,
             "offset": offset,
-            "total": total,
             "items": list(rows),
         }
     except Exception as e:
@@ -226,9 +222,6 @@ def associations_evidence(
     """
 
     try:
-        # total
-        total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
-
         rows = (
             db.execute(
                 text(
@@ -264,7 +257,7 @@ def associations_evidence(
             .all()
         )
 
-        return {"limit": limit, "offset": offset, "total": total, "items": list(rows)}
+        return {"limit": limit, "offset": offset, "items": list(rows)}
     except Exception as e:
         raise handle_database_error(e, "associations_evidence")
 
@@ -338,14 +331,6 @@ def provenance_summary(
     """
 
     try:
-        # count how many unique disease target pairs exist
-        total = db.execute(
-            text(
-                f"SELECT COUNT(*) FROM core.mv_tictac_associations_summary s {where_sql}"
-            ),
-            params,
-        ).scalar_one()
-
         # provenance
         rows = (
             db.execute(
@@ -373,7 +358,6 @@ def provenance_summary(
         return {
             "limit": limit,
             "offset": offset,
-            "total": total,
             "items": list(rows),
         }
 
