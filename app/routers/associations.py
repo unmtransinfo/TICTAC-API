@@ -9,6 +9,8 @@ from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 from app.utils.validate_query import validate_query_params
+from app.utils.validate_ids import validate_doid, validate_pmid, validate_nct
+
 
 router = APIRouter(prefix="/associations", tags=["associations"])
 
@@ -52,6 +54,10 @@ def associations_summary(
     """
     core.mv_disease_target_summary_plus
     """
+
+    # Validating the input query
+    if doid:
+        doid = validate_doid(doid)
 
     where = []
     params: Dict[str, Any] = {"limit": limit, "offset": offset}
@@ -170,6 +176,12 @@ def associations_evidence(
     """
     core.mv_tictac_associations
     """
+
+    # Validating the input query
+    if doid:
+        doid = validate_doid(doid)
+    if nct_id:
+        nct_id = validate_nct(nct_id)
 
     where = []
     params: Dict[str, Any] = {"limit": limit, "offset": offset}
@@ -296,6 +308,14 @@ def provenance_summary(
     """
     core.mv_tictac_associations_summary s
     """
+
+    # Validating the input query
+    if doid:
+        doid = validate_doid(doid)
+    if nct_id:
+        nct_id = validate_nct(nct_id)
+    if pmid:
+        pmid = validate_pmid(pmid)
 
     # will match exact disease_target pair if both doid and uniprot given
     # otherwise will try to match on the prefix (if doid given), suffix (if uniprot given), or nothing (if neither given)
