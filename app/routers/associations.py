@@ -9,6 +9,8 @@ from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 from app.utils.validate_query import validate_query_params
+from app.utils.validate_ids import validate_doid, validate_pmid, validate_nct
+
 
 router = APIRouter(prefix="/associations", tags=["associations"])
 
@@ -53,6 +55,10 @@ def associations_summary(
     core.mv_disease_target_summary_plus
     """
 
+    # Validating the input query
+    if doid:
+        doid = validate_doid(doid)
+
     where = []
     params: Dict[str, Any] = {"limit": limit, "offset": offset}
 
@@ -86,9 +92,6 @@ def associations_summary(
     """
 
     try:
-        # how many disase-target rows
-        total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
-
         # get the disease-target rows with their metrics
         rows = (
             db.execute(
@@ -124,7 +127,6 @@ def associations_summary(
         return {
             "limit": limit,
             "offset": offset,
-            "total": total,
             "items": list(rows),
         }
     except Exception as e:
@@ -174,6 +176,12 @@ def associations_evidence(
     """
     core.mv_tictac_associations
     """
+
+    # Validating the input query
+    if doid:
+        doid = validate_doid(doid)
+    if nct_id:
+        nct_id = validate_nct(nct_id)
 
     where = []
     params: Dict[str, Any] = {"limit": limit, "offset": offset}
@@ -226,9 +234,6 @@ def associations_evidence(
     """
 
     try:
-        # total
-        total = db.execute(text(f"SELECT COUNT(*) {base_from}"), params).scalar_one()
-
         rows = (
             db.execute(
                 text(
@@ -264,7 +269,7 @@ def associations_evidence(
             .all()
         )
 
-        return {"limit": limit, "offset": offset, "total": total, "items": list(rows)}
+        return {"limit": limit, "offset": offset, "items": list(rows)}
     except Exception as e:
         raise handle_database_error(e, "associations_evidence")
 
@@ -304,6 +309,14 @@ def provenance_summary(
     core.mv_tictac_associations_summary s
     """
 
+    # Validating the input query
+    if doid:
+        doid = validate_doid(doid)
+    if nct_id:
+        nct_id = validate_nct(nct_id)
+    if pmid:
+        pmid = validate_pmid(pmid)
+
     # will match exact disease_target pair if both doid and uniprot given
     # otherwise will try to match on the prefix (if doid given), suffix (if uniprot given), or nothing (if neither given)
     disease_target_exact = None
@@ -338,14 +351,6 @@ def provenance_summary(
     """
 
     try:
-        # count how many unique disease target pairs exist
-        total = db.execute(
-            text(
-                f"SELECT COUNT(*) FROM core.mv_tictac_associations_summary s {where_sql}"
-            ),
-            params,
-        ).scalar_one()
-
         # provenance
         rows = (
             db.execute(
@@ -373,7 +378,6 @@ def provenance_summary(
         return {
             "limit": limit,
             "offset": offset,
-            "total": total,
             "items": list(rows),
         }
 

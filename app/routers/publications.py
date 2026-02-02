@@ -7,6 +7,7 @@ from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 from app.utils.validate_query import validate_query_params
+from app.utils.validate_ids import validate_pmid
 
 
 router = APIRouter(prefix="/publications", tags=["publications"])
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/publications", tags=["publications"])
 )
 def get_publication(pmid: str, db: Session = Depends(get_db)):
     """ """
+    pmid = validate_pmid(pmid)
 
     # e.g.1000144, 1000466, 1000470, 100122
 

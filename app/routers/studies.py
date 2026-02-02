@@ -9,6 +9,7 @@ from app.core.exceptions import handle_database_error
 from app.db.database import get_db
 
 from app.utils.validate_query import validate_query_params
+from app.utils.validate_ids import validate_nct
 
 
 router = APIRouter(prefix="/studies", tags=["studies"])
@@ -68,10 +69,7 @@ def get_study(nct_id: str, db: Session = Depends(get_db)):
     # e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
 
     # sanitize. regex with NCT+8digit
-    nct_id = nct_id.strip().upper()
-
-    if not re.match(r"^NCT\d{8}$", nct_id):
-        raise HTTPException(status_code=400, detail="Invalid NCT-ID format.")
+    nct_id = validate_nct(nct_id)
 
     try:
         row = (
@@ -135,10 +133,7 @@ def study_publications(nct_id: str, db: Session = Depends(get_db)):
     # e.g. NCT00137111, NCT00635258, NCT00340262, NCT01501019, NCT03912506
 
     # sanitize. regex with NCT+8digit
-    nct_id = nct_id.strip().upper()
-
-    if not re.match(r"^NCT\d{8}$", nct_id):
-        raise HTTPException(status_code=400, detail="Invalid NCT ID format.")
+    nct_id = validate_nct(nct_id)
 
     try:
         study_exists = db.execute(
