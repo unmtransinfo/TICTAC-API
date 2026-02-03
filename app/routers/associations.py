@@ -73,8 +73,8 @@ def associations_summary(
         where.append("doid = :doid")
         params["doid"] = doid.strip()
     if gene_symbol:
-        where.append("gene_symbol ILIKE :gene_symbol")
-        params["gene_symbol"] = f"%{gene_symbol.strip()}%"
+        where.append("gene_symbol = :gene_symbol")
+        params["gene_symbol"] = gene_symbol.strip()
     if uniprot:
         where.append("uniprot = :uniprot")
         params["uniprot"] = uniprot.strip()
@@ -206,8 +206,8 @@ def associations_evidence(
         where.append("disease_name ILIKE :disease_name")
         params["disease_name"] = f"%{disease_name.strip()}%"
     if gene_symbol:
-        where.append("gene_symbol ILIKE :gene_symbol")
-        params["gene_symbol"] = f"%{gene_symbol.strip()}%"
+        where.append("gene_symbol = :gene_symbol")
+        params["gene_symbol"] = gene_symbol.strip()
     if molecule_chembl_id:
         where.append("molecule_chembl_id = :chembl")
         params["chembl"] = molecule_chembl_id.strip()
@@ -328,8 +328,8 @@ def provenance_summary(
         where.append("uniprot = :uniprot")
         params["uniprot"] = uniprot.strip()
     if gene_symbol:
-        where.append("gene_symbol ILIKE :gene_symbol")
-        params["gene_symbol"] = f"%{gene_symbol.strip()}%"
+        where.append("gene_symbol = :gene_symbol")
+        params["gene_symbol"] = gene_symbol.strip()
     if nct_id:
         where.append("nct_id = :nct_id")
         params["nct_id"] = nct_id.strip()
