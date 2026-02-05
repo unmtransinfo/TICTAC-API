@@ -7,12 +7,18 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import handle_database_error
 from app.db.database import get_db
-
+from app.utils.validate_ids import validate_doid, validate_nct, validate_pmid
 from app.utils.validate_query import validate_query_params
-from app.utils.validate_ids import validate_doid, validate_pmid, validate_nct
-
 
 router = APIRouter(prefix="/associations", tags=["associations"])
+
+
+def _join_where(where: list[str]) -> str:
+    # joining everything
+    where_sql = ""
+    if len(where) > 0:
+        where_sql = "WHERE " + " AND ".join(where)
+    return where_sql
 
 
 # /associations/summary endpoint
@@ -67,8 +73,8 @@ def associations_summary(
         where.append("doid = :doid")
         params["doid"] = doid.strip()
     if gene_symbol:
-        where.append("gene_symbol ILIKE :gene_symbol")
-        params["gene_symbol"] = f"%{gene_symbol.strip()}%"
+        where.append("gene_symbol = :gene_symbol")
+        params["gene_symbol"] = gene_symbol.strip()
     if uniprot:
         where.append("uniprot = :uniprot")
         params["uniprot"] = uniprot.strip()
@@ -80,10 +86,7 @@ def associations_summary(
         params["min_score"] = float(min_score)
 
     # joining everything
-    if len(where) > 0:
-        where_sql = "WHERE " + " AND ".join(where)
-    else:
-        where_sql = ""
+    where_sql = _join_where(where)
 
     # base_from
     base_from = f"""
@@ -203,8 +206,8 @@ def associations_evidence(
         where.append("disease_name ILIKE :disease_name")
         params["disease_name"] = f"%{disease_name.strip()}%"
     if gene_symbol:
-        where.append("gene_symbol ILIKE :gene_symbol")
-        params["gene_symbol"] = f"%{gene_symbol.strip()}%"
+        where.append("gene_symbol = :gene_symbol")
+        params["gene_symbol"] = gene_symbol.strip()
     if molecule_chembl_id:
         where.append("molecule_chembl_id = :chembl")
         params["chembl"] = molecule_chembl_id.strip()
@@ -222,10 +225,7 @@ def associations_evidence(
         where.append("overall_status <> 'WITHDRAWN'")
 
     # joining everything
-    if len(where) > 0:
-        where_sql = "WHERE " + " AND ".join(where)
-    else:
-        where_sql = ""
+    where_sql = _join_where(where)
 
     # base from
     base_from = f"""
@@ -317,38 +317,28 @@ def provenance_summary(
     if pmid:
         pmid = validate_pmid(pmid)
 
-    # will match exact disease_target pair if both doid and uniprot given
-    # otherwise will try to match on the prefix (if doid given), suffix (if uniprot given), or nothing (if neither given)
-    disease_target_exact = None
-    disease_target_prefix = None
-    disease_target_suffix = None
+    where = []
+    params: Dict[str, Any] = {"limit": limit, "offset": offset}
 
-    if doid and uniprot:
-        disease_target_exact = f"{doid.strip()}_{uniprot.strip()}"
-    elif doid:
-        disease_target_prefix = f"{doid.strip()}_%"
-    elif uniprot:
-        disease_target_suffix = f"%_{uniprot.strip()}"
+    # checking if there is any input given and put them in sql query
+    if doid:
+        where.append("doid = :doid")
+        params["doid"] = doid.strip()
+    if uniprot:
+        where.append("uniprot = :uniprot")
+        params["uniprot"] = uniprot.strip()
+    if gene_symbol:
+        where.append("gene_symbol = :gene_symbol")
+        params["gene_symbol"] = gene_symbol.strip()
+    if nct_id:
+        where.append("nct_id = :nct_id")
+        params["nct_id"] = nct_id.strip()
+    if pmid:
+        where.append("pmid = :pmid")
+        params["pmid"] = pmid.strip()
 
-    params: Dict[str, Any] = {
-        "disease_target_exact": disease_target_exact,
-        "disease_target_prefix": disease_target_prefix,
-        "disease_target_suffix": disease_target_suffix,
-        "gene_symbol": f"%{gene_symbol.strip()}%" if gene_symbol else None,
-        "nct_id": nct_id.strip() if nct_id else None,
-        "pmid": pmid.strip() if pmid else None,
-        "limit": limit,
-        "offset": offset,
-    }
-
-    where_sql = """
-    WHERE (:disease_target_exact IS NULL OR s.disease_target = :disease_target_exact)
-      AND (:disease_target_prefix IS NULL OR s.disease_target LIKE :disease_target_prefix)
-      AND (:disease_target_suffix IS NULL OR s.disease_target LIKE :disease_target_suffix)
-      AND (:gene_symbol   IS NULL OR s.gene_symbol ILIKE :gene_symbol)
-      AND (:nct_id        IS NULL OR s.nct_id = :nct_id)
-      AND (:pmid          IS NULL OR s.pmid = :pmid)
-    """
+    # joining everything
+    where_sql = _join_where(where)
 
     try:
         # provenance
@@ -357,15 +347,15 @@ def provenance_summary(
                 text(
                     f"""
                 SELECT
-                    s.disease_target,
-                    s.gene_symbol,
-                    s.nct_id,
-                    s.pmid,
-                    s.citation,
-                    s.pubmed_url
-                FROM core.mv_tictac_associations_summary s
+                    doid,
+                    uniprot,
+                    gene_symbol,
+                    nct_id,
+                    pmid,
+                    citation
+                FROM core.mv_tictac_associations_summary
                 {where_sql}
-                ORDER BY s.disease_target, s.gene_symbol, s.nct_id, s.pmid NULLS LAST
+                ORDER BY doid, uniprot, gene_symbol, nct_id, pmid NULLS LAST
                 LIMIT :limit OFFSET :offset
                 """
                 ),
@@ -375,10 +365,22 @@ def provenance_summary(
             .all()
         )
 
+        # Add computed fields for API consistency
+        items = []
+        for row in rows:
+            item = dict(row)
+            item["disease_target"] = f"{row['doid']}_{row['uniprot']}"
+            item["pubmed_url"] = (
+                f"https://pubmed.ncbi.nlm.nih.gov/{row['pmid']}/"
+                if row["pmid"]
+                else None
+            )
+            items.append(item)
+
         return {
             "limit": limit,
             "offset": offset,
-            "items": list(rows),
+            "items": items,
         }
 
     except Exception as e:
