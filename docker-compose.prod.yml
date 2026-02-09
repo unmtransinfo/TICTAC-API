@@ -1,6 +1,6 @@
 services:
   db:
-    restart: always
+    restart: unless-stopped
     image: unmtransinfo/tictac_db:latest
     container_name: tictac-db
     environment:
@@ -45,7 +45,7 @@ services:
           memory: 16G
 
   api:
-    restart: always
+    restart: unless-stopped
     image: unmtransinfo/tictac_api:latest
     container_name: tictac-api
     environment:
