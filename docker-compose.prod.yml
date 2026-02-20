@@ -93,4 +93,3 @@ services:
           memory: 512M
 volumes:
   tictac_db_data:
-
