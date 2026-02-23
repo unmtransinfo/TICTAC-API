@@ -8,8 +8,6 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "127.0.0.1:${DB_PORT}:${DB_PORT}"
     volumes:
       - tictac_db_data:/var/lib/postgresql
     # postgres settings based on: https://pgtune.leopard.in.ua/?dbVersion=18&osType=linux&dbType=web&cpuNum=8&totalMemory=16&totalMemoryUnit=GB&connectionNum=100&hdType=hdd
