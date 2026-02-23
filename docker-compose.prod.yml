@@ -24,7 +24,7 @@ services:
           cpus: 8
           memory: 16G
     networks:
-      - tictac_backend
+      - backend_net
 
   api:
     restart: unless-stopped
@@ -54,8 +54,8 @@ services:
           cpus: 1 # recommended workers = (2 x $num_cores) + 1. 3 workers should be plenty for our use case (<50 concurrent users)
           memory: 2G
     networks:
-      - tictac_backend
-      - tictac_frontend
+      - backend_net
+      - frontend_net
   ui:
     restart: unless-stopped
     image: unmtransinfo/tictac_ui:latest
@@ -77,12 +77,12 @@ services:
           cpus: 2
           memory: 4G
     networks:
-      - tictac_frontend
+      - frontend_net
 
 volumes:
   tictac_db_data:
 
 
 networks:
-  tictac_frontend:
-  tictac_backend:
+  frontend_net:
+  backend_net:
