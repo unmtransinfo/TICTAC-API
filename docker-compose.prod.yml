@@ -59,26 +59,10 @@ services:
 
   ui:
     container_name: tictac-ui
-    image: unmtransinfo/tictac_ui:latest
-    restart: unless-stopped
-    depends_on:
-      - api
-    ports:
-      - "127.0.0.1:${UI_PORT:-5173}:5173"
-    environment:
-      - VITE_API_PROXY_TARGET=http://api:8000
-    networks:
-      - frontend_net
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:5173/ || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: 2
-          memory: 4G
+    image: unmtransinfo/tictac_ui:latest # assumes built image is targeting prod
+    restart: "no" # don't need to restart bc we just mount static files
+    volumes:
+      - /var/www/tictac-ui:/output
 
 volumes:
   tictac_db_data:
