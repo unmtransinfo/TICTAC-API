@@ -11,7 +11,7 @@ services:
       DB_NAME: ${DB_NAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - backend_net
+      - tictac_net
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} && test -f /var/lib/postgresql/restore_complete" ]
       interval: 60s
@@ -43,8 +43,7 @@ services:
       DB_PORT: 5432
       BEHIND_PROXY: "true"
     networks:
-      - backend_net
-      - frontend_net
+      - tictac_net
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/meta/health').read()" ]
       interval: 30s
@@ -69,5 +68,4 @@ volumes:
 
 
 networks:
-  frontend_net:
-  backend_net:
+  tictac_net:
