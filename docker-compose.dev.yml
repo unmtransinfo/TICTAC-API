@@ -3,7 +3,7 @@ services:
     container_name: tictac-db
     image: unmtransinfo/tictac_db:latest
     ports:
-      - "${DB_PORT}:5432"
+      - "127.0.0.1:${DB_PORT}:5432" # don't need to expose ports here, but it may be convenient to access the db from the localhost rather than having to docker exec into the container
     volumes:
       - tictac_db_data:/var/lib/postgresql
     environment:
@@ -28,7 +28,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
     volumes:
       - ./app:/app/app
       - ./requirements.txt:/app/requirements.txt
@@ -49,7 +49,7 @@ services:
     depends_on:
       - api
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     environment:
       - VITE_API_PROXY_TARGET=http://api:8000
 
