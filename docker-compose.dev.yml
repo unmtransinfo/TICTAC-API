@@ -45,6 +45,7 @@ services:
     build:
       context: https://github.com/unmtransinfo/TICTAC-UI.git#main
       dockerfile: Dockerfile
+      target: dev
     depends_on:
       - api
     ports:
