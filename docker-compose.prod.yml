@@ -11,7 +11,7 @@ services:
       DB_NAME: ${DB_NAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - backend_net
+      - tictac_net
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} && test -f /var/lib/postgresql/restore_complete" ]
       interval: 60s
@@ -43,8 +43,7 @@ services:
       DB_PORT: 5432
       BEHIND_PROXY: "true"
     networks:
-      - backend_net
-      - frontend_net
+      - tictac_net
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/meta/health').read()" ]
       interval: 30s
@@ -59,31 +58,14 @@ services:
 
   ui:
     container_name: tictac-ui
-    image: unmtransinfo/tictac_ui:latest
-    restart: unless-stopped
-    depends_on:
-      - api
-    ports:
-      - "127.0.0.1:${UI_PORT:-5173}:5173"
-    environment:
-      - VITE_API_PROXY_TARGET=http://api:8000
-    networks:
-      - frontend_net
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:5173/ || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: 2
-          memory: 4G
+    image: unmtransinfo/tictac_ui:latest # assumes built image is targeting prod
+    restart: "no" # don't need to restart bc we just mount static files
+    volumes:
+      - /var/www/tictac-ui:/output
 
 volumes:
   tictac_db_data:
 
 
 networks:
-  frontend_net:
-  backend_net:
+  tictac_net:

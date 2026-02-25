@@ -110,28 +110,34 @@ pre-commit run --all-files
 
 ### Launching API
 
-1. **(Recommended) Modify [.env](.env)**
-2. **(If services previously up):**
+1. **Pull latest changes (for compose file mainly):**
+
+```bash
+git pull
+```
+
+2. **(Recommended) Modify [.env](.env)**
+3. **(If services previously up):**
 
    ```bash
    docker compose -f docker-compose.prod.yml down
    ```
 
-3. **Pull latest images and run:**
+4. **Pull latest images and run:**
 
    ```bash
    docker compose -f docker-compose.prod.yml pull
    docker compose -f docker-compose.prod.yml up -d --remove-orphans
    ```
 
-4. **Verify deployment:**
+5. **Verify deployment:**
 
    ```bash
    docker compose -f docker-compose.prod.yml ps
    docker compose -f docker-compose.prod.yml logs api
    ```
 
-5. **(One-time setup) If not done so already, modify `/etc/apache2/sites-available/000-default-le-ssl.conf` to include the following lines:**
+6. **(One-time setup) If not done so already, modify `/etc/apache2/sites-available/000-default-le-ssl.conf` to include the following lines:**
 
    ```
    ProxyPreserveHost On
