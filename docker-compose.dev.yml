@@ -18,6 +18,9 @@ services:
       retries: 20
     command: >
       postgres -c max_wal_size=4GB -c checkpoint_timeout=15min -c checkpoint_completion_target=0.9
+    profiles:
+      - default
+      - backend
 
   api:
     container_name: tictac-api
@@ -39,20 +42,26 @@ services:
       DB_HOST: db
       DB_PORT: 5432
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    profiles:
+      - default
+      - backend
 
   ui:
     container_name: tictac-ui
     build:
-      context: https://github.com/unmtransinfo/TICTAC-UI.git#main
+      context: https://github.com/unmtransinfo/TICTAC-UI.git#${UI_BRANCH:-main}
       dockerfile: Dockerfile
       target: dev
     depends_on:
       - api
     ports:
-      - "127.0.0.1:5173:5173"
+      - "127.0.0.1:${UI_PORT:-5173}:5173"
     environment:
       - VITE_API_PROXY_TARGET=http://api:8000
       - VITE_API_BASE_URL=/api/v1
+    profiles:
+      - default
+      - frontend
 
 volumes:
   tictac_db_data:
