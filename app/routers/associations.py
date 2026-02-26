@@ -172,7 +172,7 @@ def associations_evidence(
     phase: Optional[str] = None,
     overall_status: Optional[str] = None,
     exclude_withdrawn: bool = False,
-    limit: int = Query(default=100, ge=1, le=1000),
+    limit: int = Query(default=100, ge=1, le=5000),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
@@ -301,7 +301,7 @@ def provenance_summary(
     uniprot: str | None = None,
     nct_id: str | None = None,
     pmid: str | None = None,
-    limit: int = Query(default=100, ge=1, le=1000),
+    limit: int = Query(default=100, ge=1, le=5000),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
