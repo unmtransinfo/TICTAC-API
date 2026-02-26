@@ -3,3 +3,6 @@ app/__pycache__/
 __pycache__/
 *.pyc
 .DS_Store
+
+# ignore production .env file
+.env
