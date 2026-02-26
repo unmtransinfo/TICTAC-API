@@ -192,6 +192,9 @@ The API docs should now be accessible at:
 
 https://habanero.health.unm.edu/tictac/apidocs
 
+And UI should be accessible from:
+https://habanero.health.unm.edu/tictac
+
 ## Pushing API to dockerhub
 
 1. **Build image:**
