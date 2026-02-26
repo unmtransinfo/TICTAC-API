@@ -11,23 +11,30 @@ Currently in the initial development phase.
 
 ### Steps
 
-1. **Start the development environment:**
+1. **(Optional):** Modify [.env.dev](.env.dev)
+2. **Start the development environment:**
 
    ```bash
-   docker compose -f docker-compose.dev.yml up --build
+   docker compose --env-file .env.dev -f docker-compose.dev.yml --profile default up --build
    ```
 
-2. **Access the API:**
+   - Note: if you don't want to launch the UI (just DB+API), then use:
+
+   ```bash
+   docker compose --env-file .env.dev -f docker-compose.dev.yml --profile backend up --build
+   ```
+
+3. **Access the API:**
    - API: http://127.0.0.1:8000
    - Interactive Docs (Swagger): http://127.0.0.1:8000/docs
 
-3. **Stop the environment:**
+4. **Stop the environment:**
 
    ```bash
    docker compose -f docker-compose.dev.yml down
    ```
 
-4. **(Optional - only if you want a completely clean slate) stop and remove volumes:**
+5. **(Optional - only if you want a completely clean slate) stop and remove volumes:**
    ```bash
    docker compose -f docker-compose.dev.yml down -v
    ```
@@ -116,7 +123,13 @@ pre-commit run --all-files
 git pull
 ```
 
-2. **(Recommended) Modify [.env](.env)**
+2. **Copy [.env.prod.example](.env.prod.example) to `.env`**:
+
+```bash
+cp .env.prod.example .env
+```
+
+2. **Modify `.env`**
 3. **(If services previously up):**
 
    ```bash
@@ -137,23 +150,43 @@ git pull
    docker compose -f docker-compose.prod.yml logs api
    ```
 
-6. **(One-time setup) If not done so already, modify `/etc/apache2/sites-available/000-default-le-ssl.conf` to include the following lines:**
+6. **(One-time setup) If not done so already, modify your `/etc/apache2/sites-available/` files to include the following lines:**
 
-   ```
-   ProxyPreserveHost On
-   ProxyPass /tictac/apidocs http://localhost:<APP_PORT>/docs
-   ProxyPassReverse /tictac/apidocs http://localhost:<APP_PORT>/docs
-   ProxyPass /tictac/ http://localhost:<APP_PORT>/
-   ProxyPassReverse /tictac/ http://localhost:<APP_PORT>/
-   ```
+```
+# TICTAC API (proxy rules BEFORE the Alias so they take priority)
+ProxyPass /tictac/apidocs http://localhost:<APP_PORT>/docs
+ProxyPassReverse /tictac/apidocs http://localhost:<APP_PORT>/docs
+ProxyPass /tictac/openapi.json http://localhost:<APP_PORT>/openapi.json
+ProxyPassReverse /tictac/openapi.json http://localhost:<APP_PORT>/openapi.json
 
-   Then reload apache:
+ProxyPass /tictac/api/ http://localhost:<APP_PORT>/api/
+ProxyPassReverse /tictac/api/ http://localhost:<APP_PORT>/api/
 
-   ```bash
-   sudo apache2ctl configtest # make sure syntax ok
-   sudo systemctl reload apache2
-   curl -I https://habanero.health.unm.edu/tictac/apidocs # should give HTTP/1.1 200
-   ```
+# TICTAC UI - serve static files from the container volume
+
+Alias /tictac /var/www/tictac-ui/
+
+<Directory /var/www/tictac-ui>
+   Options -Indexes +FollowSymLinks
+   AllowOverride None
+   Require all granted
+
+   # SPA fallback: if the file/dir doesn't exist, serve index.html
+
+   RewriteEngine On
+   RewriteCond %{REQUEST_FILENAME} !-f
+   RewriteCond %{REQUEST_FILENAME} !-d
+   RewriteRule ^ index.html [L]
+</Directory>
+```
+
+Then reload apache:
+
+```bash
+sudo apache2ctl configtest # make sure syntax ok
+sudo systemctl reload apache2
+curl -I https://habanero.health.unm.edu/tictac/apidocs # should give HTTP/1.1 200
+```
 
 The API docs should now be accessible at:
 
