@@ -103,6 +103,7 @@ def associations_summary(
                 SELECT
                     doid,
                     disease_name,
+                    tcrdtargetname,
                     gene_symbol,
                     uniprot,
                     idgtdl,
