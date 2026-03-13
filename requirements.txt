@@ -10,7 +10,7 @@ annotated-types==0.7.0
     # via pydantic
 anyio==4.12.1
     # via starlette
-black==25.12.0
+black==26.3.1
     # via -r requirements.in
 cfgv==3.5.0
     # via pre-commit
@@ -56,7 +56,7 @@ pydantic-core==2.41.5
     # via pydantic
 python-dotenv==1.2.1
     # via -r requirements.in
-pytokens==0.3.0
+pytokens==0.4.1
     # via black
 pyyaml==6.0.3
     # via pre-commit
