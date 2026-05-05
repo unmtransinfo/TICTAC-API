@@ -54,7 +54,7 @@ pydantic==2.12.5
     #   fastapi
 pydantic-core==2.41.5
     # via pydantic
-python-dotenv==1.2.1
+python-dotenv==1.2.2
     # via -r requirements.in
 pytokens==0.4.1
     # via black
